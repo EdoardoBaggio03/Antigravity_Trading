@@ -31,6 +31,25 @@
       }
     }
   ],
-  "tutte_le_operazioni": [],
+  "tutte_le_operazioni": [
+    {
+      "data": "2026-11-06",
+      "timestamp": "2026-11-06T15:38:30+01:00",
+      "ticker": "NVDA",
+      "azione": "BUY",
+      "quantita": 100.0,
+      "prezzo_stimato": 192.6,
+      "order_id": "d2fc0e3e-00b5-402f-a029-79af3c268c7e"
+    },
+    {
+      "data": "2026-11-06",
+      "timestamp": "2026-11-06T15:38:30+01:00",
+      "ticker": "SPY",
+      "azione": "BUY",
+      "quantita": 25.0,
+      "prezzo_stimato": 737.04,
+      "order_id": "5af077ae-b6f0-4531-81bf-28c1a66df5e9"
+    }
+  ],
   "storico_bilanci": []
 }
