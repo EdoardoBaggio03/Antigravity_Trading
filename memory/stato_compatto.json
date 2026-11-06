@@ -1,11 +1,12 @@
 {
-  "ultimo_aggiornamento": "2026-11-06T15:38:30+01:00",
-  "spy_prezzo_riferimento_iniziale": null,
-  "equity_iniziale": null,
-  "nota_giorno_precedente": "Giorno 0: Portafoglio appena inizializzato. Osservare i livelli chiave prima di allocare.",
+  "ultimo_aggiornamento": "2026-11-06T23:56:12+01:00",
+  "spy_prezzo_riferimento_iniziale": 736.07,
+  "equity_iniziale": 99528.61,
+  "nota_giorno_precedente": "Sessione terminata a -0.47% per ritracciamento finale su NVDA. Posizioni mantenute over-weekend con SPY sostanzialmente piatto e NVDA a supporto. Monitorare lunedì all'open per eventuale gestione del rischio.",
   "regole_apprese": [
     "Non inseguire mai rialzi estesi senza ritracciamento.",
-    "Mantenere liquidità strategica per assorbire la volatilità."
+    "Mantenere liquidità strategica per assorbire la volatilità.",
+    "Evitare di aprire nuovi trade a ridosso della chiusura del venerdì per scongiurare il rischio di gap contrari nel weekend."
   ],
   "piano_mattutino_corrente": {
     "timestamp": "2026-11-06T14:07:51+01:00",
@@ -31,12 +32,22 @@
   },
   "posizioni_attuali": {
     "NVDA": {
-      "qty": 23.0,
-      "market_value": 4432.79,
-      "avg_entry_price": 192.75,
-      "current_price": 192.73,
-      "unrealized_pl": -0.46,
-      "unrealized_plpc": -0.0001
+      "qty": 100.0,
+      "qty_available": 100.0,
+      "market_value": 18818.0,
+      "avg_entry_price": 192.6653,
+      "current_price": 188.18,
+      "unrealized_pl": -448.53,
+      "unrealized_plpc": -0.02328
+    },
+    "SPY": {
+      "qty": 25.0,
+      "qty_available": 25.0,
+      "market_value": 18411.25,
+      "avg_entry_price": 737.3644,
+      "current_price": 736.45,
+      "unrealized_pl": -22.86,
+      "unrealized_plpc": -0.00124
     }
   },
   "ultimi_5_giorni_operazioni": [
@@ -59,5 +70,29 @@
         }
       ]
     }
-  ]
+  ],
+  "parametri_strategia": {
+    "max_peso_singolo_asset_pct": 25.0,
+    "take_profit_default_pct": 2.2,
+    "stop_loss_default_pct": 1.5,
+    "max_posizioni_aperte": 6,
+    "cash_minimo_pct": 15.0,
+    "modalita_dopo_target": "CONTINUA",
+    "razionale_parametri": "Liquidità mantenuta sopra il 15% per gestire gap all'apertura di lunedì; posizioni aperte ridotte a 6 per focalizzarsi sui setup ad alta convinzione."
+  },
+  "watchlist_dinamica": [
+    "NVDA",
+    "SPY",
+    "QQQ",
+    "SOXL",
+    "AMD",
+    "GOGO",
+    "FLYT",
+    "STAK"
+  ],
+  "sessioni_eseguite": {
+    "data": "2026-11-06",
+    "morning": false,
+    "close": true
+  }
 }

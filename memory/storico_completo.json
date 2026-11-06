@@ -51,5 +51,24 @@
       "order_id": "5af077ae-b6f0-4531-81bf-28c1a66df5e9"
     }
   ],
-  "storico_bilanci": []
+  "storico_bilanci": [
+    {
+      "data": "2026-11-06",
+      "timestamp": "2026-11-06T23:56:12+01:00",
+      "pnl_report": {
+        "equity_attuale": 99528.61,
+        "cash_attuale": 62299.36,
+        "daily_pnl_usd": -471.39,
+        "daily_pnl_pct": -0.47,
+        "daily_target_pct": 1.0,
+        "target_1pct_raggiunto": false,
+        "spy_prezzo_attuale": 736.07,
+        "spy_daily_pct": 0.36,
+        "cum_portfolio_pct": 0.0,
+        "cum_spy_pct": 0.0,
+        "alpha_vs_spy_pct": 0.0
+      },
+      "nota_giorno_precedente": "Sessione terminata a -0.47% per ritracciamento finale su NVDA. Posizioni mantenute over-weekend con SPY sostanzialmente piatto e NVDA a supporto. Monitorare lunedì all'open per eventuale gestione del rischio."
+    }
+  ]
 }
