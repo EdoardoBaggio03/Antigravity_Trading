@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 
 import config
 from broker_alpaca import AlpacaPaperBroker
+from learning_engine import LearningEngine
 from main import AICapitalOrchestrator
 from memory_manager import MemoryManager
 
@@ -146,6 +147,8 @@ def build_dashboard_payload() -> dict[str, Any]:
             "points": chart_points[-30:],
         },
         "compact_memory": compact_mem,
+        "strategy_params": compact_mem.get("parametri_strategia") or config.DEFAULT_STRATEGY_PARAMS,
+        "learning": LearningEngine().dashboard_view(),
         "storico_bilanci": (full_hist.get("storico_bilanci") or [])[-15:],
     }
     return payload
@@ -202,14 +205,14 @@ class DashboardHTTPRequestHandler(SimpleHTTPRequestHandler):
             phase = (qs.get("phase") or ["morning"])[0].strip().lower()
             orchestrator = AICapitalOrchestrator()
             try:
-                if phase == "morning":
+                if phase in {"cycle", "open", "midday"}:
+                    res = orchestrator.run_trading_cycle()
+                elif phase == "morning":
                     res = orchestrator.run_morning_session()
-                elif phase == "open":
-                    res = orchestrator.run_open_execution()
-                elif phase == "midday":
-                    res = orchestrator.run_midday_check()
                 elif phase == "close":
                     res = orchestrator.run_close_report()
+                elif phase == "auto":
+                    res = orchestrator.run_auto() or {"ok": True, "message": "Nessuna sessione da eseguire in questo orario."}
                 else:
                     res = {"ok": False, "error": f"Fase sconosciuta: {phase}"}
 

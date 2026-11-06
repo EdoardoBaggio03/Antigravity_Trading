@@ -14,6 +14,7 @@ import requests
 
 from ai_trader import AITrader
 from broker_alpaca import AlpacaPaperBroker
+from learning_engine import LearningEngine
 from main import AICapitalOrchestrator
 from memory_manager import MemoryManager
 from risk_cage import RiskCage
@@ -42,12 +43,28 @@ class TestDevilAdvocate(unittest.TestCase):
         }
 
     def test_1_forbidden_ticker_and_short_selling(self) -> None:
-        """Caso 1: Ordine su ticker vietato (GME_UNLISTED) o vendita allo scoperto (Short) + blocco endpoint Live."""
+        """Caso 1: Titolo non negoziabile (simbolo invalido / OTC) o vendita allo scoperto (Short) + blocco endpoint Live."""
         # 1a. Verifica blocco immediato endpoint Live
         with self.assertRaises(RuntimeError):
             RiskCage(base_url="https://api.alpaca.markets")
 
-        # 1b. Ordine su GME_UNLISTED (fuori dall'universo dei 30 strumenti) e tentativo di Short
+        # 1b. Universo dinamico: un titolo OTC segnalato dal validatore Alpaca viene rifiutato
+        otc_cage = RiskCage(
+            base_url="https://paper-api.alpaca.markets",
+            asset_validator=lambda s: (False, f"'{s}' è un titolo OTC (escluso).") if s == "XYZQ" else (True, ""),
+        )
+        otc_report = otc_cage.validate_orders_batch(
+            orders=[{"ticker": "XYZQ", "azione": "BUY", "quantita": 10,
+                     "perche_potrei_avere_torto": "Titolo illiquido, spread enormi."},
+                    {"ticker": "SMCI", "azione": "BUY", "quantita": 10,
+                     "perche_potrei_avere_torto": "Volatilità elevata post-trimestrale."}],
+            portfolio_equity=10_000.0, available_cash=10_000.0, current_positions={},
+            market_prices={"XYZQ": 3.0, "SMCI": 40.0},
+        )
+        self.assertEqual([o["ticker"] for o in otc_report.approved_orders], ["SMCI"])
+        self.assertIn("OTC", otc_report.rejected_orders[0].reason)
+
+        # 1c. Simbolo malformato, tentativo di Short e azione SHORT esplicita
         orders = [
             {
                 "ticker": "GME_UNLISTED",
@@ -281,6 +298,84 @@ class TestDevilAdvocate(unittest.TestCase):
         self.assertEqual(approved_tickers, ["SPY", "GLD"])
         self.assertEqual(rejected_tickers, ["QQQ"])
         self.assertAlmostEqual(report.remaining_cash, 100.0)
+
+    def test_7_learning_engine_rebuild_and_prompt_summary(self) -> None:
+        """Caso 7: Motore di apprendimento FIFO: calcolo P&L per strategia/ticker/ora e summary compatto."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            learn_path = Path(tmp_dir) / "learning.json"
+            engine = LearningEngine(path=learn_path)
+
+            # Registra ordini di ingresso con strategia associata
+            engine.register_order("order-in-1", {
+                "ticker": "TQQQ",
+                "azione": "BUY",
+                "strategia": "MOMENTUM_BREAKOUT",
+                "confidenza": 0.85,
+                "razionale_tecnico": "Breakout volumetrico",
+            })
+            engine.register_order("order-in-2", {
+                "ticker": "SQQQ",
+                "azione": "BUY",
+                "strategia": "INVERSE_HEDGE",
+                "confidenza": 0.70,
+                "razionale_tecnico": "Hedge ribasso",
+            })
+
+            # Mock di fill activities da Alpaca (1 trade vincente su TQQQ, 1 trade perdente su SQQQ)
+            mock_fills = [
+                # Buy TQQQ: 10 @ $50
+                {"symbol": "TQQQ", "side": "buy", "qty": "10", "price": "50.0", "transaction_time": "2026-11-06T15:35:00.000000Z", "order_id": "order-in-1"},
+                # Buy SQQQ: 20 @ $20
+                {"symbol": "SQQQ", "side": "buy", "qty": "20", "price": "20.0", "transaction_time": "2026-11-06T16:00:00.000000Z", "order_id": "order-in-2"},
+                # Sell TQQQ: 10 @ $52 (+$20 / +4%)
+                {"symbol": "TQQQ", "side": "sell", "qty": "10", "price": "52.0", "transaction_time": "2026-11-06T16:45:00.000000Z", "order_id": "order-out-1"},
+                # Sell SQQQ: 20 @ $19.50 (-$10 / -2.5%)
+                {"symbol": "SQQQ", "side": "sell", "qty": "20", "price": "19.50", "transaction_time": "2026-11-06T17:10:00.000000Z", "order_id": "order-out-2"},
+            ]
+
+            stats = engine.rebuild(mock_fills)
+            self.assertEqual(stats["totale"]["n"], 2)
+            self.assertEqual(stats["totale"]["win_rate"], 50.0)
+            self.assertAlmostEqual(stats["totale"]["pnl_usd"], 10.0)
+
+            # Verifica attribuzione corretta per strategia
+            strat_stats = stats["per_strategia"]
+            self.assertEqual(strat_stats["MOMENTUM_BREAKOUT"]["win_rate"], 100.0)
+            self.assertEqual(strat_stats["INVERSE_HEDGE"]["win_rate"], 0.0)
+
+            # Verifica summary compatto per il prompt (< 1000 char)
+            summary = engine.prompt_summary()
+            self.assertEqual(summary["trade_chiusi"], 2)
+            self.assertIn("MOMENTUM_BREAKOUT", summary["per_strategia"])
+
+    def test_8_gemini_dynamic_parameters_and_hard_limit(self) -> None:
+        """Caso 8: Parametri dinamici di Gemini (sanitizzazione e vincolo rigido max weight)."""
+        import config
+
+        # 8a. Parametri personalizzati scelti da Gemini entro limiti
+        ai_custom_params = {
+            "max_peso_singolo_asset_pct": 35.0,
+            "take_profit_default_pct": 3.5,
+            "stop_loss_default_pct": 1.2,
+            "max_posizioni_aperte": 12,
+            "cash_minimo_pct": 8.0,
+            "modalita_dopo_target": "CONTINUA",
+            "razionale_parametri": "Statistiche favorevoli sul momentum.",
+        }
+        sanitized = config.sanitize_strategy_params(ai_custom_params)
+        self.assertEqual(sanitized["max_peso_singolo_asset_pct"], 35.0)
+        self.assertEqual(sanitized["modalita_dopo_target"], "CONTINUA")
+
+        # 8b. Allucinazione AI: tentativo di impostare max_peso = 90% -> bloccato da HARD_MAX_SINGLE_ASSET_WEIGHT (50%)
+        hallucinated_params = {
+            "max_peso_singolo_asset_pct": 90.0,
+            "take_profit_default_pct": -5.0,  # Negativo -> corretto a soglia minima
+            "modalita_dopo_target": "VALORE_NON_VALIDO",
+        }
+        clamped = config.sanitize_strategy_params(hallucinated_params)
+        self.assertEqual(clamped["max_peso_singolo_asset_pct"], 50.0)
+        self.assertEqual(clamped["take_profit_default_pct"], 0.2)
+        self.assertEqual(clamped["modalita_dopo_target"], "CONTINUA")
 
 
 if __name__ == "__main__":

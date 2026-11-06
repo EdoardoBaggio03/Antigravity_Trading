@@ -1,4 +1,8 @@
-"""Entrypoint CLI, Profit-Lock Engine (+1% Daily Target) e Scheduler (Europe/Rome) per AI Capital."""
+"""
+AI Capital — Adaptive Edition.
+Cicli di trading continui durante la seduta USA: Gemini decide quando entrare, su cosa e con quali parametri,
+imparando dai risultati reali. La Gabbia applica solo i vincoli fissi di sicurezza.
+"""
 
 from __future__ import annotations
 
@@ -12,22 +16,25 @@ from zoneinfo import ZoneInfo
 import schedule
 
 import config
-from ai_trader import AITrader
+from ai_trader import AITrader, DecisioneTradingAI
 from broker_alpaca import AlpacaPaperBroker
+from learning_engine import LearningEngine
 from memory_manager import MemoryManager
 from risk_cage import RiskCage
 from telegram_notifier import TelegramNotifier
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("AICapital.Main")
 
 
-class AICapitalOrchestrator:
-    """Coordina le sessioni giornaliere puntando al target netto del +1.00% al giorno."""
+def _daily_pnl(portfolio: dict[str, Any]) -> tuple[float, float]:
+    equity = float(portfolio.get("equity") or 0.0)
+    last = float(portfolio.get("last_equity") or equity or 100000.0)
+    usd = equity - last
+    return usd, (usd / last * 100.0) if last > 0 else 0.0
 
+
+class AICapitalOrchestrator:
     def __init__(
         self,
         broker: AlpacaPaperBroker | None = None,
@@ -35,480 +42,359 @@ class AICapitalOrchestrator:
         memory: MemoryManager | None = None,
         ai: AITrader | None = None,
         notifier: TelegramNotifier | None = None,
+        learning: LearningEngine | None = None,
     ) -> None:
         config.verify_paper_endpoint()
         self.broker = broker or AlpacaPaperBroker()
-        self.cage = cage or RiskCage()
+        self.cage = cage or RiskCage(asset_validator=self.broker.check_asset_tradable)
         self.memory = memory or MemoryManager()
         self.ai = ai or AITrader()
         self.notifier = notifier or TelegramNotifier()
+        self.learning = learning or LearningEngine()
+
+    # ------------------------------------------------------------------ utilità
+    @staticmethod
+    def _now() -> datetime:
+        return datetime.now(ZoneInfo(config.TIMEZONE))
 
     def _today_str(self) -> str:
-        return datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d")
+        return self._now().strftime("%Y-%m-%d")
 
-    def _evaluate_auto_profit_and_stop_orders(
-        self, portfolio: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """
-        Regole deterministiche a supporto del Target +1.00% Netto Giornaliero:
-        1. Portfolio Profit Lock: se il P&L giornaliero netto >= +1.00%, incassa tutte le posizioni in guadagno.
-        2. Single-Position Take Profit: se una singola posizione guadagna >= +2.20%, incassa il profitto.
-        3. Single-Position Stop Loss: se una singola posizione perde <= -1.50%, taglia subito la perdita.
-        """
-        equity = float(portfolio.get("equity") or 0.0)
-        last_equity = float(portfolio.get("last_equity") or equity or 100000.0)
-        daily_pnl_pct = (
-            ((equity - last_equity) / last_equity * 100.0) if last_equity > 0 else 0.0
+    def _learning_summary(self) -> dict[str, Any]:
+        bilanci = self.memory.load_full_history().get("storico_bilanci", [])[-30:]
+        return self.learning.prompt_summary(bilanci)
+
+    def _collect_market(self, portfolio: dict[str, Any]) -> tuple[dict[str, Any], dict[str, list[str]]]:
+        """Universo dinamico: posizioni + universo seme + watchlist scelta da Gemini + scanner di mercato."""
+        state = self.memory.load_compact_state()
+        movers = self.broker.get_market_movers(top=10)
+        symbols = list(dict.fromkeys([
+            *portfolio.get("positions", {}).keys(),
+            *config.CORE_WATCHLIST,
+            *state.get("watchlist_dinamica", []),
+            *movers.get("gainers", []), *movers.get("losers", []), *movers.get("most_actives", []),
+        ]))[:120]
+        return self.broker.get_watchlist_market_data(symbols), movers
+
+    def _ask_gemini(self, fase: str, portfolio: dict[str, Any], market: dict[str, Any],
+                    movers: dict[str, list[str]]) -> DecisioneTradingAI | None:
+        return self.ai.generate_decision(
+            fase=fase,
+            portfolio_summary=portfolio,
+            market_snapshot=market,
+            compact_memory_json=self.memory.get_prompt_payload(),
+            learning_summary=self._learning_summary(),
+            strategy_params=self.memory.get_strategy_params(),
+            movers=movers,
+            now_rome=self._now().strftime("%a %H:%M"),
         )
-        positions = portfolio.get("positions") or {}
 
-        auto_orders: list[dict[str, Any]] = []
-        target_locked = daily_pnl_pct >= config.DAILY_NET_TARGET_PCT
+    def _apply_ai_parameters(self, decision: DecisioneTradingAI | None) -> dict[str, Any]:
+        if decision is None:
+            return self.memory.get_strategy_params()
+        return self.memory.save_strategy_params(decision.parametri.model_dump(), decision.ticker_da_osservare or None)
 
-        for sym, pos in positions.items():
+    @staticmethod
+    def _deterministic_exits(portfolio: dict[str, Any], params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Rete di sicurezza lato bot (il bracket lato broker è la prima difesa)."""
+        _, day_pct = _daily_pnl(portfolio)
+        target_hit = day_pct >= config.DAILY_NET_TARGET_PCT
+        protect = target_hit and params.get("modalita_dopo_target") == "PROTEGGI_PROFITTI"
+        tp, sl = float(params["take_profit_default_pct"]), float(params["stop_loss_default_pct"])
+
+        exits: list[dict[str, Any]] = []
+        for sym, pos in (portfolio.get("positions") or {}).items():
             qty = float(pos.get("qty") or 0.0)
             if qty <= 0:
                 continue
-            pl_pct = float(pos.get("unrealized_plpc") or 0.0) * 100.0
+            pl = float(pos.get("unrealized_plpc") or 0.0) * 100.0
+            if pl >= tp or (protect and pl > 0.15):
+                strat, why = "TAKE_PROFIT", f"Profitto {pl:+.2f}% (TP {tp:.2f}%{', target giornaliero protetto' if protect else ''})."
+            elif pl <= -sl:
+                strat, why = "STOP_LOSS", f"Perdita {pl:+.2f}% oltre lo stop di -{sl:.2f}%."
+            else:
+                continue
+            exits.append({
+                "ticker": sym, "azione": "SELL", "quantita": qty, "strategia": strat, "confidenza": 1.0,
+                "razionale_tecnico": why,
+                "perche_potrei_avere_torto": "Il prezzo potrebbe invertire subito dopo l'uscita.",
+            })
+        return exits
 
-            if target_locked and pl_pct > 0.15:
-                auto_orders.append(
-                    {
-                        "ticker": sym,
-                        "azione": "SELL",
-                        "quantita": qty,
-                        "strategia": "TAKE_PROFIT_1PCT",
-                        "acquisto_sui_massimi_senza_ritracciamento": False,
-                        "razionale_tecnico": f"Target giornaliero +{config.DAILY_NET_TARGET_PCT:.2f}% raggiunto ({daily_pnl_pct:+.2f}%): Profit Lock su {sym} ({pl_pct:+.2f}%).",
-                        "perche_potrei_avere_torto": "Il titolo potrebbe proseguire il rialzo intraday dopo la presa di profitto.",
-                    }
-                )
-            elif pl_pct >= config.POSITION_TAKE_PROFIT_PCT:
-                auto_orders.append(
-                    {
-                        "ticker": sym,
-                        "azione": "SELL",
-                        "quantita": qty,
-                        "strategia": "TAKE_PROFIT_1PCT",
-                        "acquisto_sui_massimi_senza_ritracciamento": False,
-                        "razionale_tecnico": f"Take-Profit automatico su {sym} a {pl_pct:+.2f}% (soglia +{config.POSITION_TAKE_PROFIT_PCT:.2f}%).",
-                        "perche_potrei_avere_torto": "Possibile continuazione del trend direzionale oltre il target.",
-                    }
-                )
-            elif pl_pct <= config.POSITION_STOP_LOSS_PCT:
-                auto_orders.append(
-                    {
-                        "ticker": sym,
-                        "azione": "SELL",
-                        "quantita": qty,
-                        "strategia": "STOP_LOSS_DEFENSE",
-                        "acquisto_sui_massimi_senza_ritracciamento": False,
-                        "razionale_tecnico": f"Stop-Loss protettivo su {sym} a {pl_pct:+.2f}% (limite {config.POSITION_STOP_LOSS_PCT:.2f}%) per difendere il target giornaliero.",
-                        "perche_potrei_avere_torto": "Possibile rimbalzo tecnico dopo aver toccato lo stop intraday.",
-                    }
-                )
-        return auto_orders
+    @staticmethod
+    def _attach_bracket(order: dict[str, Any], price: float, params: dict[str, Any]) -> dict[str, Any]:
+        """Se Gemini non ha indicato TP/SL assoluti, li calcola dai suoi parametri di default."""
+        if order.get("azione") != "BUY" or price <= 0:
+            return order
+        tp = float(order.get("take_profit_price") or 0.0)
+        sl = float(order.get("stop_loss_price") or 0.0)
+        if tp <= 0:
+            tp = price * (1 + float(params["take_profit_default_pct"]) / 100.0)
+        if sl <= 0:
+            sl = price * (1 - float(params["stop_loss_default_pct"]) / 100.0)
+        order["take_profit_price"] = round(tp, 2 if tp >= 1 else 4)
+        order["stop_loss_price"] = round(sl, 2 if sl >= 1 else 4)
+        order["quantita"] = float(int(float(order.get("quantita") or 0)))
+        return order
 
-    def run_morning_session(self) -> dict[str, Any]:
-        """09:00 Europe/Rome: Scansione 30 strumenti, lettura memoria compatta e invio Piano +1% su Telegram."""
-        logger.info("=== Avvio Sessione 09:00 (Pre-Market & Piano +1%% Daily Target) ===")
-        portfolio = self.broker.get_portfolio_state()
-        if not portfolio.get("ok"):
-            msg = f"⚠️ [AI Capital 09:00] Impossibile leggere il portafoglio Alpaca: {portfolio.get('error')}"
-            self.notifier.send_message(msg)
-            return {"ok": False, "error": portfolio.get("error")}
-
-        market_data = self.broker.get_watchlist_market_data()
-        compact_mem = self.memory.get_prompt_payload()
-        decision = self.ai.generate_decision(
-            fase="morning",
-            portfolio_summary=portfolio,
-            market_snapshot=market_data,
-            compact_memory_json=compact_mem,
-        )
-
-        if decision is None:
-            msg = "⚠️ [AI Capital 09:00] Risposta AI non valida o assente. Nessun piano salvato."
-            self.notifier.send_message(msg)
-            return {"ok": False, "error": "Invalid AI decision"}
-
-        plan_dict = decision.model_dump()
-        self.memory.save_morning_plan(plan_dict)
-
-        ordini_txt = (
-            "\n".join(
-                f"- {o.azione} {o.quantita} {o.ticker} [{o.strategia}] | {o.razionale_tecnico} | Rischio: {o.perche_potrei_avere_torto}"
-                for o in decision.ordini
-                if o.azione != "HOLD"
-            )
-            or "Nessuna operazione pianificata (HOLD)."
-        )
-        report = (
-            f"🌅 [AI Capital - Piano 09:00 | Target +{config.DAILY_NET_TARGET_PCT:.2f}%/gg]\n"
-            f"Equity: ${portfolio['equity']:.2f} | Cash: ${portfolio['cash']:.2f}\n"
-            f"Universo: {len(config.ALLOWED_TICKERS)} Strumenti Multi-Asset\n"
-            f"Sentiment: {decision.sentiment_mercato}\n"
-            f"Ordini proposti:\n{ordini_txt}"
-        )
-        self.notifier.send_message(report)
-        return {"ok": True, "plan": plan_dict}
-
-    def run_open_execution(
-        self, override_orders: list[dict[str, Any]] | None = None
-    ) -> dict[str, Any]:
-        """15:35 Europe/Rome: Verifica apertura USA, Profit-Lock/Stop-Loss, validazione La Gabbia ed esecuzione."""
-        logger.info("=== Avvio Sessione Esecutiva (Target +1%% Giornaliero) ===")
-        clock = self.broker.is_market_open()
-        if not clock.get("ok") or not clock.get("is_open"):
-            reason = clock.get("error") or "Mercato USA chiuso (festività o fuori orario)"
-            msg = f"⏸️ [AI Capital] Nessuna esecuzione: {reason}."
-            logger.info(msg)
-            self.notifier.send_message(msg)
-            return {"ok": False, "market_open": False, "reason": reason, "executed": []}
-
-        portfolio = self.broker.get_portfolio_state()
-        if not portfolio.get("ok"):
-            msg = f"⚠️ [AI Capital] Errore lettura portafoglio: {portfolio.get('error')}"
-            self.notifier.send_message(msg)
-            return {"ok": False, "market_open": True, "reason": portfolio.get("error"), "executed": []}
-
-        market_data = self.broker.get_watchlist_market_data()
-        prices = {sym: float(info.get("price", 0.0)) for sym, info in market_data.items()}
-
-        if override_orders is not None:
-            candidate_orders = override_orders
-        else:
-            # 1. Ordini automatici di Profit-Lock (+1% giornaliero / +2.2% posizione) e Stop-Loss (-1.5%)
-            auto_orders = self._evaluate_auto_profit_and_stop_orders(portfolio)
-            auto_tickers = {o["ticker"] for o in auto_orders}
-
-            # 2. Decisione AI sui 30 strumenti
-            compact_mem = self.memory.get_prompt_payload()
-            decision = self.ai.generate_decision(
-                fase="open",
-                portfolio_summary=portfolio,
-                market_snapshot=market_data,
-                compact_memory_json=compact_mem,
-            )
-            if decision is None and not auto_orders:
-                msg = "⚠️ [AI Capital] Decisione AI non valida/corrotta. Ordini bloccati."
-                self.notifier.send_message(msg)
-                return {"ok": False, "market_open": True, "reason": "AI response invalid", "executed": []}
-
-            ai_orders = (
-                [
-                    o.model_dump()
-                    for o in decision.ordini
-                    if o.azione != "HOLD" and o.ticker not in auto_tickers
-                ]
-                if decision
-                else []
-            )
-            candidate_orders = auto_orders + ai_orders
-
+    # ------------------------------------------------------------------ esecuzione
+    def _execute(self, candidates: list[dict[str, Any]], portfolio: dict[str, Any],
+                 prices: dict[str, float], params: dict[str, Any], label: str) -> dict[str, Any]:
         validation = self.cage.validate_orders_batch(
-            orders=candidate_orders,
+            orders=candidates,
             portfolio_equity=portfolio["equity"],
             available_cash=portfolio["cash"],
             current_positions=portfolio["positions"],
             market_prices=prices,
             endpoint_url=self.broker.base_url,
+            max_weight=float(params["max_peso_singolo_asset_pct"]) / 100.0,
+            max_positions=int(params["max_posizioni_aperte"]),
+            min_cash_reserve_pct=float(params["cash_minimo_pct"]),
         )
 
         executed: list[dict[str, Any]] = []
+        failed: list[str] = []
         for order in validation.approved_orders:
-            res = self.broker.submit_market_order(
-                ticker=order["ticker"],
-                side=order["azione"],
-                qty=float(order["quantita"]),
-            )
+            sym, side, qty = order["ticker"], order["azione"], float(order["quantita"])
+            if side == "SELL":
+                self.broker.cancel_open_orders(sym)  # libera le azioni bloccate dalle gambe del bracket
+                res = self.broker.submit_order(sym, "SELL", qty)
+            else:
+                res = self.broker.submit_order(sym, "BUY", qty,
+                                               float(order.get("take_profit_price") or 0.0),
+                                               float(order.get("stop_loss_price") or 0.0))
             if res.get("ok"):
-                executed.append(
-                    {
-                        "ticker": order["ticker"],
-                        "azione": order["azione"],
-                        "quantita": order["quantita"],
-                        "strategia": order.get("strategia", "TACTICAL"),
-                        "prezzo_stimato": prices.get(order["ticker"], 0.0),
-                        "order_id": res.get("order_id"),
-                    }
-                )
+                self.learning.register_order(res.get("order_id"), order)
+                executed.append({
+                    "ticker": sym, "azione": side, "quantita": qty,
+                    "strategia": order.get("strategia", "ALTRO"),
+                    "prezzo_stimato": prices.get(sym, 0.0),
+                    "take_profit": order.get("take_profit_price"),
+                    "stop_loss": order.get("stop_loss_price"),
+                    "order_id": res.get("order_id"),
+                })
+            else:
+                failed.append(f"{side} {sym}: {res.get('error')}")
 
-        updated_portfolio = self.broker.get_portfolio_state()
-        final_positions = (
-            updated_portfolio.get("positions", portfolio["positions"])
-            if updated_portfolio.get("ok")
-            else portfolio["positions"]
-        )
+        updated = self.broker.get_portfolio_state()
         self.memory.record_executed_orders(
-            date_str=self._today_str(),
-            executed_orders=executed,
-            current_positions=final_positions,
+            self._today_str(), executed,
+            updated.get("positions", portfolio["positions"]) if updated.get("ok") else portfolio["positions"],
         )
 
-        equity_now = float(portfolio["equity"])
-        last_eq = float(portfolio.get("last_equity") or equity_now or 100000.0)
-        day_pct = ((equity_now - last_eq) / last_eq * 100.0) if last_eq > 0 else 0.0
+        if executed or validation.rejected_orders or failed:
+            _, day_pct = _daily_pnl(updated if updated.get("ok") else portfolio)
+            lines = [f"🔔 [AI Capital - {label} | Oggi {day_pct:+.2f}% / target +{config.DAILY_NET_TARGET_PCT:.2f}%]"]
+            for e in executed:
+                extra = f" TP {e['take_profit']} / SL {e['stop_loss']}" if e["azione"] == "BUY" else ""
+                lines.append(f"✅ {e['azione']} {e['quantita']:g} {e['ticker']} @~${e['prezzo_stimato']:.2f} [{e['strategia']}]{extra}")
+            for r in validation.rejected_orders:
+                if not r.reason.startswith("HOLD"):
+                    lines.append(f"⛔ {r.order.get('azione')} {r.order.get('ticker')}: {r.reason}")
+            for f in failed:
+                lines.append(f"❌ {f}")
+            self.notifier.send_message("\n".join(lines))
 
-        rejected_txt = (
-            "\n".join(
-                f"⛔ {r.order.get('azione')} {r.order.get('ticker')}: {r.reason}"
-                for r in validation.rejected_orders
-            )
-            or "Nessuno"
-        )
-        exec_txt = (
-            "\n".join(
-                f"✅ {e['azione']} {e['quantita']} {e['ticker']} (@ ~${e['prezzo_stimato']:.2f})"
-                for e in executed
-            )
-            or "Nessun ordine eseguito"
-        )
-        msg = (
-            f"🔔 [AI Capital - Esecuzione Mercato | Oggi: {day_pct:+.2f}% / Target +{config.DAILY_NET_TARGET_PCT:.2f}%]\n"
-            f"Eseguiti:\n{exec_txt}\n"
-            f"Bloccati da La Gabbia:\n{rejected_txt}"
-        )
-        self.notifier.send_message(msg)
-        return {
-            "ok": True,
-            "market_open": True,
-            "executed": executed,
-            "rejected": [r.reason for r in validation.rejected_orders],
-        }
+        return {"ok": True, "market_open": True, "executed": executed,
+                "rejected": [r.reason for r in validation.rejected_orders], "failed": failed}
 
-    def run_midday_check(self) -> dict[str, Any]:
-        """Check Intraday (17:00 / 18:30 / 20:30): esegue Profit-Lock (+1%), Stop-Loss o rotazioni tattiche."""
-        logger.info("=== Avvio Check Intraday & Profit-Lock (+1%% Daily Target) ===")
-        clock = self.broker.is_market_open()
-        if not clock.get("ok") or not clock.get("is_open"):
-            return {"ok": False, "market_open": False, "reason": "Mercato chiuso"}
-
+    # ------------------------------------------------------------------ sessioni
+    def run_morning_session(self) -> dict[str, Any]:
+        """Pre-market: aggiorna l'apprendimento, Gemini ricalibra parametri e watchlist, piano su Telegram."""
+        logger.info("=== Sessione Pre-Market ===")
         portfolio = self.broker.get_portfolio_state()
         if not portfolio.get("ok"):
+            self.notifier.send_message(f"⚠️ [AI Capital Pre-Market] Portafoglio non leggibile: {portfolio.get('error')}")
             return {"ok": False, "error": portfolio.get("error")}
 
-        auto_orders = self._evaluate_auto_profit_and_stop_orders(portfolio)
-        market_data = self.broker.get_watchlist_market_data()
-        compact_mem = self.memory.get_prompt_payload()
-        decision = self.ai.generate_decision(
-            fase="midday",
-            portfolio_summary=portfolio,
-            market_snapshot=market_data,
-            compact_memory_json=compact_mem,
-        )
-
-        if decision is None and not auto_orders:
+        self.learning.rebuild(self.broker.get_fill_activities())
+        market, movers = self._collect_market(portfolio)
+        decision = self._ask_gemini("morning", portfolio, market, movers)
+        if decision is None:
+            self.notifier.send_message("⚠️ [AI Capital Pre-Market] Risposta AI non valida. Restano i parametri precedenti.")
             return {"ok": False, "error": "Invalid AI decision"}
 
-        ai_orders = (
-            [o.model_dump() for o in decision.ordini if o.azione != "HOLD"]
-            if (decision and (decision.intervento_critico_necessario or decision.ordini))
-            else []
+        params = self._apply_ai_parameters(decision)
+        self.memory.save_morning_plan(decision.model_dump())
+        self.memory.mark_session_done(self._today_str(), "morning")
+
+        idee = "\n".join(
+            f"- {o.azione} {o.quantita:g} {o.ticker} [{o.strategia}, conf {o.confidenza:.0%}] {o.razionale_tecnico}"
+            for o in decision.ordini if o.azione != "HOLD"
+        ) or "Nessuna idea forte: attesa dei setup in seduta."
+        self.notifier.send_message(
+            f"🌅 [AI Capital - Piano | Target +{config.DAILY_NET_TARGET_PCT:.2f}%/gg]\n"
+            f"Equity ${portfolio['equity']:,.2f} | Cash ${portfolio['cash']:,.2f}\n"
+            f"Sentiment: {decision.sentiment_mercato}\n"
+            f"Parametri scelti da Gemini: peso max {params['max_peso_singolo_asset_pct']}% | TP {params['take_profit_default_pct']}% | "
+            f"SL {params['stop_loss_default_pct']}% | max pos {params['max_posizioni_aperte']} | dopo target: {params['modalita_dopo_target']}\n"
+            f"Perché: {params['razionale_parametri']}\n"
+            f"Watchlist: {', '.join(decision.ticker_da_osservare[:15]) or '-'}\n"
+            f"Idee:\n{idee}"
         )
-        auto_tickers = {o["ticker"] for o in auto_orders}
-        combined_orders = auto_orders + [
-            o for o in ai_orders if o["ticker"] not in auto_tickers
-        ]
+        return {"ok": True, "plan": decision.model_dump()}
 
-        if not combined_orders:
-            equity = float(portfolio["equity"])
-            last_eq = float(portfolio.get("last_equity") or equity or 100000.0)
-            day_pct = ((equity - last_eq) / last_eq * 100.0) if last_eq > 0 else 0.0
-            sentiment = decision.sentiment_mercato if decision else "Posizioni monitorate"
-            msg = (
-                f"🛡️ [AI Capital Intraday] P&L Oggi: {day_pct:+.2f}% (Target +{config.DAILY_NET_TARGET_PCT:.2f}%). "
-                f"Nessuna rotazione necessaria. ({sentiment})"
-            )
-            self.notifier.send_message(msg)
-            return {"ok": True, "critical_action": False}
+    def run_trading_cycle(self, override_orders: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        """Ciclo intraday (ogni 15 min a mercato aperto): uscite di sicurezza + decisioni libere di Gemini."""
+        clock = self.broker.is_market_open()
+        if not clock.get("ok") or not clock.get("is_open"):
+            reason = clock.get("error") or "Mercato USA chiuso (festività o fuori orario)"
+            logger.info("Ciclo saltato: %s", reason)
+            return {"ok": False, "market_open": False, "reason": reason, "executed": []}
 
-        return self.run_open_execution(override_orders=combined_orders)
-
-    def run_close_report(self) -> dict[str, Any]:
-        """21:05/21:50 Europe/Rome: Bilancio P&L vs Target +1.00% e SPY, aggiornamento memoria e report Telegram."""
-        logger.info("=== Avvio Sessione Serale (Bilancio Target +1%% & Memoria) ===")
+        logger.info("=== Ciclo di Trading Intraday ===")
         portfolio = self.broker.get_portfolio_state()
         if not portfolio.get("ok"):
-            msg = f"⚠️ [AI Capital Close] Impossibile generare bilancio: {portfolio.get('error')}"
-            self.notifier.send_message(msg)
+            return {"ok": False, "market_open": True, "reason": portfolio.get("error"), "executed": []}
+
+        market, movers = self._collect_market(portfolio)
+        prices = {s: float(i.get("price", 0.0)) for s, i in market.items()}
+        for sym, pos in portfolio["positions"].items():
+            prices.setdefault(sym, float(pos.get("current_price") or 0.0))
+
+        if override_orders is not None:
+            params = self.memory.get_strategy_params()
+            candidates = list(override_orders)
+        else:
+            params = self.memory.get_strategy_params()
+            exits = self._deterministic_exits(portfolio, params)
+            decision = self._ask_gemini("intraday", portfolio, market, movers)
+            params = self._apply_ai_parameters(decision)
+
+            exit_syms = {o["ticker"] for o in exits}
+            ai_orders = [o.model_dump() for o in decision.ordini
+                         if o.azione != "HOLD" and o.ticker not in exit_syms] if decision else []
+
+            _, day_pct = _daily_pnl(portfolio)
+            if day_pct >= config.DAILY_NET_TARGET_PCT and params["modalita_dopo_target"] == "STOP_NUOVI_INGRESSI":
+                ai_orders = [o for o in ai_orders if o["azione"] != "BUY"]
+            candidates = exits + ai_orders
+
+            # Prezzi per eventuali ticker proposti fuori dallo snapshot
+            missing = [o["ticker"] for o in candidates if o["ticker"] not in prices]
+            if missing:
+                for s, i in self.broker.get_watchlist_market_data(missing).items():
+                    prices[s] = float(i.get("price", 0.0))
+
+        candidates = [self._attach_bracket(o, prices.get(o.get("ticker", ""), 0.0), params) for o in candidates]
+        if not candidates:
+            logger.info("Nessun ordine in questo ciclo (Gemini attende un setup migliore).")
+            return {"ok": True, "market_open": True, "executed": [], "rejected": []}
+        return self._execute(candidates, portfolio, prices, params, "Ciclo Intraday")
+
+    # Alias retro-compatibili
+    def run_open_execution(self, override_orders: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.run_trading_cycle(override_orders)
+
+    def run_midday_check(self) -> dict[str, Any]:
+        return self.run_trading_cycle()
+
+    def run_close_report(self) -> dict[str, Any]:
+        """Dopo la chiusura USA: ricostruisce i trade, Gemini estrae le lezioni e ricalibra i parametri."""
+        logger.info("=== Sessione Serale (Bilancio & Apprendimento) ===")
+        portfolio = self.broker.get_portfolio_state()
+        if not portfolio.get("ok"):
+            self.notifier.send_message(f"⚠️ [AI Capital Close] Bilancio impossibile: {portfolio.get('error')}")
             return {"ok": False, "error": portfolio.get("error")}
 
-        market_data = self.broker.get_watchlist_market_data()
-        compact_state = self.memory.load_compact_state()
+        stats = self.learning.rebuild(self.broker.get_fill_activities())
+        market, movers = self._collect_market(portfolio)
+        state = self.memory.load_compact_state()
 
         equity = float(portfolio["equity"])
-        last_equity = float(portfolio.get("last_equity") or equity)
-        daily_pnl_usd = equity - last_equity
-        daily_pnl_pct = (
-            (daily_pnl_usd / last_equity * 100.0) if last_equity > 0 else 0.0
-        )
-        target_hit = daily_pnl_pct >= config.DAILY_NET_TARGET_PCT
+        day_usd, day_pct = _daily_pnl(portfolio)
+        target_hit = day_pct >= config.DAILY_NET_TARGET_PCT
+        spy = market.get("SPY", {})
+        spy_price, spy_day = float(spy.get("price", 0.0)), float(spy.get("daily_change_pct", 0.0))
+        eq_init = float(state.get("equity_iniziale") or equity)
+        spy_init = float(state.get("spy_prezzo_riferimento_iniziale") or spy_price or 1.0)
+        cum_pf = (equity - eq_init) / eq_init * 100.0 if eq_init > 0 else 0.0
+        cum_spy = (spy_price - spy_init) / spy_init * 100.0 if spy_init > 0 and spy_price > 0 else 0.0
 
-        spy_info = market_data.get("SPY", {})
-        spy_price = float(spy_info.get("price", 0.0))
-        spy_daily_pct = float(spy_info.get("daily_change_pct", 0.0))
-
-        eq_init = float(compact_state.get("equity_iniziale") or equity)
-        spy_init = float(
-            compact_state.get("spy_prezzo_riferimento_iniziale") or spy_price or 1.0
-        )
-
-        cum_portfolio_pct = (
-            ((equity - eq_init) / eq_init * 100.0) if eq_init > 0 else 0.0
-        )
-        cum_spy_pct = (
-            ((spy_price - spy_init) / spy_init * 100.0)
-            if spy_init > 0 and spy_price > 0
-            else 0.0
-        )
-        alpha_vs_spy = cum_portfolio_pct - cum_spy_pct
-
-        decision = self.ai.generate_decision(
-            fase="close",
-            portfolio_summary=portfolio,
-            market_snapshot=market_data,
-            compact_memory_json=self.memory.get_prompt_payload(),
-        )
-
-        nota_domani = (
-            decision.nota_giorno_precedente
-            if decision
-            else f"Chiusura con Equity ${equity:.2f} (Oggi {daily_pnl_pct:+.2f}% vs Target +{config.DAILY_NET_TARGET_PCT:.2f}%)."
-        )
-        nuova_regola = decision.nuova_regola_appresa if decision else ""
+        decision = self._ask_gemini("close", portfolio, market, movers)
+        params = self._apply_ai_parameters(decision)
+        nota = decision.nota_giorno_precedente if decision else f"Oggi {day_pct:+.2f}% vs target +{config.DAILY_NET_TARGET_PCT:.2f}%."
+        regola = decision.nuova_regola_appresa if decision else ""
 
         pnl_report = {
-            "equity_attuale": round(equity, 2),
-            "cash_attuale": round(float(portfolio["cash"]), 2),
-            "daily_pnl_usd": round(daily_pnl_usd, 2),
-            "daily_pnl_pct": round(daily_pnl_pct, 2),
-            "daily_target_pct": config.DAILY_NET_TARGET_PCT,
-            "target_1pct_raggiunto": target_hit,
-            "spy_prezzo_attuale": round(spy_price, 2),
-            "spy_daily_pct": round(spy_daily_pct, 2),
-            "cum_portfolio_pct": round(cum_portfolio_pct, 2),
-            "cum_spy_pct": round(cum_spy_pct, 2),
-            "alpha_vs_spy_pct": round(alpha_vs_spy, 2),
+            "equity_attuale": round(equity, 2), "cash_attuale": round(float(portfolio["cash"]), 2),
+            "daily_pnl_usd": round(day_usd, 2), "daily_pnl_pct": round(day_pct, 2),
+            "daily_target_pct": config.DAILY_NET_TARGET_PCT, "target_1pct_raggiunto": target_hit,
+            "spy_prezzo_attuale": round(spy_price, 2), "spy_daily_pct": round(spy_day, 2),
+            "cum_portfolio_pct": round(cum_pf, 2), "cum_spy_pct": round(cum_spy, 2),
+            "alpha_vs_spy_pct": round(cum_pf - cum_spy, 2),
         }
+        self.memory.update_end_of_day(self._today_str(), nota, regola, portfolio["positions"], pnl_report)
+        self.memory.mark_session_done(self._today_str(), "close")
 
-        self.memory.update_end_of_day(
-            date_str=self._today_str(),
-            nota_domani=nota_domani,
-            nuova_regola=nuova_regola,
-            current_positions=portfolio["positions"],
-            pnl_report=pnl_report,
+        tot = stats.get("totale", {})
+        learn_txt = (f"Trade chiusi: {tot.get('n', 0)} | Win rate {tot.get('win_rate', 0)}% | "
+                     f"Profit factor {tot.get('profit_factor', 0)} | P&L realizzato ${tot.get('pnl_usd', 0):,.2f}"
+                     if tot.get("n") else "Nessun trade chiuso ancora: statistiche in costruzione.")
+        self.notifier.send_message(
+            f"🌙 [AI Capital - Bilancio | {'🎯 TARGET CENTRATO' if target_hit else '⏳ sotto target'}]\n"
+            f"Equity ${equity:,.2f} | Oggi {day_pct:+.2f}% (${day_usd:+,.2f}) vs target +{config.DAILY_NET_TARGET_PCT:.2f}%\n"
+            f"SPY oggi {spy_day:+.2f}% | Da inizio: {cum_pf:+.2f}% vs SPY {cum_spy:+.2f}%\n"
+            f"📚 {learn_txt}\n"
+            f"Lezione: {regola or '-'}\n"
+            f"Parametri per domani: peso {params['max_peso_singolo_asset_pct']}% | TP {params['take_profit_default_pct']}% | "
+            f"SL {params['stop_loss_default_pct']}% | dopo target: {params['modalita_dopo_target']}\n"
+            f"Nota: {nota}"
         )
-
-        badge_target = "🎯 TARGET +1% CENTRATO!" if target_hit else "⏳ In corsa per il target"
-        report_msg = (
-            f"🌙 [AI Capital - Bilancio Serale | {badge_target}]\n"
-            f"Equity: ${equity:.2f} | Cash: ${portfolio['cash']:.2f}\n"
-            f"Oggi Netto: {daily_pnl_pct:+.2f}% (${daily_pnl_usd:+.2f}) vs Target +{config.DAILY_NET_TARGET_PCT:.2f}%\n"
-            f"Benchmark SPY Oggi: {spy_daily_pct:+.2f}%\n"
-            f"Da Inizio: Portafoglio {cum_portfolio_pct:+.2f}% vs SPY {cum_spy_pct:+.2f}% (Alpha: {alpha_vs_spy:+.2f}%)\n"
-            f"Nota per domani: {nota_domani}"
-        )
-        self.notifier.send_message(report_msg)
         return {"ok": True, "pnl_report": pnl_report}
 
+    def run_auto(self) -> dict[str, Any] | None:
+        """Decide da solo cosa fare: ciclo di trading a mercato aperto, piano al mattino, bilancio la sera."""
+        now = self._now()
+        clock = self.broker.is_market_open()
+        if clock.get("ok") and clock.get("is_open"):
+            return self.run_trading_cycle()
+        if now.weekday() >= 5:
+            logger.info("Weekend: nessuna azione.")
+            return None
+        today = self._today_str()
+        minutes = now.hour * 60 + now.minute
+        if 7 * 60 <= minutes < 15 * 60 + 30 and not self.memory.is_session_done(today, "morning"):
+            return self.run_morning_session()
+        if minutes >= 21 * 60 and not self.memory.is_session_done(today, "close"):
+            return self.run_close_report()
+        logger.info("Mercato chiuso e nessuna sessione da eseguire alle %s.", now.strftime("%H:%M"))
+        return None
 
-def start_scheduler(orchestrator: AICapitalOrchestrator) -> None:
-    """Avvia lo scheduler continuo sul fuso orario Europe/Rome con check intraday potenziati."""
-    tz = config.TIMEZONE
-    schedule.every().day.at("09:00", tz).do(orchestrator.run_morning_session)
-    schedule.every().day.at("15:35", tz).do(orchestrator.run_open_execution)
-    schedule.every().day.at("17:00", tz).do(orchestrator.run_midday_check)
-    schedule.every().day.at("18:30", tz).do(orchestrator.run_midday_check)
-    schedule.every().day.at("20:30", tz).do(orchestrator.run_midday_check)
-    schedule.every().day.at("21:05", tz).do(orchestrator.run_close_report)
 
-    logger.info(
-        "Scheduler AI Capital (+1%% Daily Target) avviato (%s): 09:00 | 15:35 | 17:00 | 18:30 | 20:30 | 21:05",
-        tz,
-    )
+def start_scheduler(orchestrator: AICapitalOrchestrator, every_minutes: int = 15) -> None:
+    schedule.every(every_minutes).minutes.do(orchestrator.run_auto)
+    logger.info("Scheduler locale avviato: run_auto ogni %d minuti.", every_minutes)
+    orchestrator.run_auto()
     while True:
         schedule.run_pending()
-        time.sleep(20)
+        time.sleep(15)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="AI Capital - Agente Quantitativo Multi-Asset (+1% Daily Target)"
-    )
-    parser.add_argument(
-        "--morning",
-        action="store_true",
-        help="Esegue subito la routine delle 09:00 (Analisi 30 asset e Piano Telegram)",
-    )
-    parser.add_argument(
-        "--open",
-        action="store_true",
-        help="Esegue subito la routine delle 15:35 (Validazione La Gabbia ed Esecuzione)",
-    )
-    parser.add_argument(
-        "--midday",
-        action="store_true",
-        help="Esegue subito il check intraday (Profit-Lock +1%, Stop-Loss e Rotazione)",
-    )
-    parser.add_argument(
-        "--close",
-        action="store_true",
-        help="Esegue subito la routine serale (Bilancio P&L vs Target +1% e SPY)",
-    )
-    parser.add_argument(
-        "--auto",
-        action="store_true",
-        help="Rileva automaticamente la fascia oraria Europe/Rome (per GitHub Actions cron)",
-    )
+    parser = argparse.ArgumentParser(description="AI Capital - Adaptive Edition (+1% Daily Target)")
+    parser.add_argument("--morning", action="store_true", help="Piano pre-market e ricalibrazione parametri")
+    parser.add_argument("--cycle", action="store_true", help="Un ciclo di trading intraday")
+    parser.add_argument("--open", action="store_true", help="Alias di --cycle")
+    parser.add_argument("--midday", action="store_true", help="Alias di --cycle")
+    parser.add_argument("--close", action="store_true", help="Bilancio serale e apprendimento")
+    parser.add_argument("--auto", action="store_true", help="Sceglie da solo la sessione (usato da GitHub Actions)")
     return parser.parse_args(argv)
-
-
-def run_auto_by_rome_time(orchestrator: AICapitalOrchestrator) -> None:
-    """Seleziona la routine corretta in base all'ora corrente in Europe/Rome."""
-    now_rome = datetime.now(ZoneInfo(config.TIMEZONE))
-    minutes_of_day = now_rome.hour * 60 + now_rome.minute
-    logger.info(
-        "Avvio --auto: orario rilevato Europe/Rome = %s",
-        now_rome.strftime("%Y-%m-%d %H:%M:%S"),
-    )
-    if 7 * 60 <= minutes_of_day <= 12 * 60 + 30:
-        orchestrator.run_morning_session()
-    elif 14 * 60 + 30 <= minutes_of_day <= 16 * 60 + 25:
-        orchestrator.run_open_execution()
-    elif 16 * 60 + 26 <= minutes_of_day <= 20 * 60 + 50:
-        orchestrator.run_midday_check()
-    elif 20 * 60 + 51 <= minutes_of_day <= 23 * 60 + 30:
-        orchestrator.run_close_report()
-    else:
-        logger.info(
-            "Orario %s fuori dalle finestre operative (nessuna azione eseguita).",
-            now_rome.strftime("%H:%M"),
-        )
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     orchestrator = AICapitalOrchestrator()
-
-    ran_single = False
+    ran = False
     if args.morning:
-        orchestrator.run_morning_session()
-        ran_single = True
-    if args.open:
-        orchestrator.run_open_execution()
-        ran_single = True
-    if args.midday:
-        orchestrator.run_midday_check()
-        ran_single = True
+        orchestrator.run_morning_session(); ran = True
+    if args.cycle or args.open or args.midday:
+        orchestrator.run_trading_cycle(); ran = True
     if args.close:
-        orchestrator.run_close_report()
-        ran_single = True
+        orchestrator.run_close_report(); ran = True
     if args.auto:
-        run_auto_by_rome_time(orchestrator)
-        ran_single = True
-
-    if not ran_single:
+        orchestrator.run_auto(); ran = True
+    if not ran:
         start_scheduler(orchestrator)
     return 0
 

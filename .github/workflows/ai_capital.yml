@@ -1,20 +1,11 @@
 name: AI Capital Autonomous Trader
 
 on:
-  # Pianificazione automatica Potenziata (+1% Daily Target) dal Lunedì al Venerdì (UTC -> Europe/Rome CET: UTC+1)
-  # 08:00 UTC = 09:00 Roma (Pre-market & Piano 30 Strumenti)
-  # 14:35 UTC = 15:35 Roma (Apertura USA & Esecuzione Aggressiva)
-  # 16:00 UTC = 17:00 Roma (Check Intraday 1: Profit-Lock +1% / Stop-Loss)
-  # 17:30 UTC = 18:30 Roma (Check Intraday 2: Metà Seduta & Rotazione)
-  # 19:30 UTC = 20:30 Roma (Power Hour: Consolidamento Target +1%)
-  # 20:05 UTC = 21:05 Roma (Bilancio Serale P&L vs Target +1% & Memoria)
+  # Pianificazione continua: Pre-market alle 09:00 Roma, trading ogni 30 min a mercato aperto (15:30-21:00 Roma) e bilancio serale
   schedule:
-    - cron: '0 8 * * 1-5'
-    - cron: '35 14 * * 1-5'
-    - cron: '0 16 * * 1-5'
-    - cron: '30 17 * * 1-5'
-    - cron: '30 19 * * 1-5'
-    - cron: '5 20 * * 1-5'
+    - cron: '0 8 * * 1-5'         # 09:00 Roma (Pre-market & Piano)
+    - cron: '*/30 14-19 * * 1-5'  # Ogni 30 minuti tra le 15:30 e le 20:30 Roma (Cicli Intraday)
+    - cron: '5 20 * * 1-5'        # 21:05 Roma (Bilancio Serale & Apprendimento)
 
   # Permette anche l'avvio manuale con un clic da GitHub (anche da smartphone)
   workflow_dispatch:
@@ -22,14 +13,15 @@ on:
       sessione:
         description: 'Quale sessione vuoi eseguire?'
         required: true
-        default: 'morning'
+        default: 'auto'
         type: choice
         options:
+          - auto
+          - cycle
           - morning
           - open
           - midday
           - close
-          - auto
 
 permissions:
   contents: write
@@ -75,11 +67,13 @@ jobs:
 
       - name: Salva Memoria Aggiornata nel Repository
         run: |
+          cp docs/data.json data.json || true
+          cp docs/index.html index.html || true
           git config user.name "AI Capital Bot"
           git config user.email "aicapital-bot@users.noreply.github.com"
-          git add memory/stato_compatto.json memory/storico_completo.json docs/data.json
+          git add memory/stato_compatto.json memory/storico_completo.json memory/learning.json docs/data.json data.json index.html
           if ! git diff --cached --quiet; then
-            git commit -m "chore(memory): aggiornamento automatico stato AI Capital [skip ci]"
+            git commit -m "chore(memory): aggiornamento automatico stato e apprendimento AI Capital [skip ci]"
             git pull --rebase origin main || true
             git push
           else

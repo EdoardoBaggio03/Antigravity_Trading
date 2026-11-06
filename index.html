@@ -316,6 +316,87 @@
       </div>
     </section>
 
+    <!-- 4.5 APPRENDIMENTO CONTINUO & PARAMETRI DINAMICI GEMINI -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Parametri Scelti da Gemini (5 cols) -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white">⚙️ Parametri Scelti da Gemini</h2>
+            <p class="text-xs text-slate-400">Ricalibrati a ogni sessione per raggiungere il target +1%</p>
+          </div>
+          <span id="param-mode-badge" class="px-2 py-0.5 text-[11px] font-mono font-semibold rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">CONTINUA</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Peso Max Asset</span>
+            <span id="p-max-weight" class="text-base font-bold text-white">25%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Take Profit Default</span>
+            <span id="p-tp" class="text-base font-bold text-emerald-400">+2.2%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Stop Loss Default</span>
+            <span id="p-sl" class="text-base font-bold text-rose-400">-1.5%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Max Posizioni</span>
+            <span id="p-max-pos" class="text-base font-bold text-white">8</span>
+          </div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
+          <span class="text-[10px] font-mono uppercase text-indigo-400 block mb-1">Razionale Scelta Parametri</span>
+          <p id="p-rationale" class="text-slate-300 leading-relaxed italic">Parametri iniziali di default.</p>
+        </div>
+      </div>
+
+      <!-- Motore di Apprendimento (7 cols) -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-7 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white">📚 Apprendimento Continuo dai Trade Reali</h2>
+            <p class="text-xs text-slate-400">Statistiche calcolate sui FILL effettivi di Alpaca e passate nel prompt</p>
+          </div>
+          <span id="learning-updated" class="text-xs font-mono text-slate-400">--</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Trade Chiusi</span>
+            <span id="l-closed-trades" class="text-base font-bold text-white">0</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Win Rate</span>
+            <span id="l-win-rate" class="text-base font-bold text-emerald-400">0.0%</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">Profit Factor</span>
+            <span id="l-profit-factor" class="text-base font-bold text-indigo-400">0.00</span>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span class="text-slate-400 block text-[10px] uppercase">P&L Realizzato</span>
+            <span id="l-pnl-usd" class="text-base font-bold text-white">$0.00</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs font-mono">
+            <thead>
+              <tr class="border-b border-slate-800/80 text-[10px] uppercase text-slate-400 bg-slate-900/40">
+                <th class="py-2 px-3">Strategia</th>
+                <th class="py-2 px-3 text-right">Trade</th>
+                <th class="py-2 px-3 text-right">Win Rate</th>
+                <th class="py-2 px-3 text-right">Media %</th>
+                <th class="py-2 px-3 text-right">P&L Realizzato</th>
+              </tr>
+            </thead>
+            <tbody id="learning-tbody" class="divide-y divide-slate-800/60">
+              <tr><td colspan="5" class="py-4 text-center text-slate-500">In attesa dei primi trade chiusi per calcolare le metriche.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- 5. STORICO MOVIMENTI & ORDINI ALPACA -->
     <section class="glass-card rounded-2xl overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
@@ -622,6 +703,49 @@
       (mem.regole_apprese || []).forEach(r => {
         rulesEl.innerHTML += `<li>${r}</li>`;
       });
+
+      // Parametri Scelti da Gemini
+      const sp = d.strategy_params || (mem && mem.parametri_strategia) || {};
+      document.getElementById('p-max-weight').textContent = `${sp.max_peso_singolo_asset_pct || 25}%`;
+      document.getElementById('p-tp').textContent = `+${sp.take_profit_default_pct || 2.2}%`;
+      document.getElementById('p-sl').textContent = `-${sp.stop_loss_default_pct || 1.5}%`;
+      document.getElementById('p-max-pos').textContent = sp.max_posizioni_aperte || 8;
+      document.getElementById('p-rationale').textContent = sp.razionale_parametri || 'Parametri di default.';
+      const modeBadge = document.getElementById('param-mode-badge');
+      modeBadge.textContent = sp.modalita_dopo_target || 'CONTINUA';
+
+      // Statistiche di Apprendimento
+      const lr = d.learning || {};
+      const lStats = lr.stats || {};
+      const lTot = lStats.totale || {};
+      document.getElementById('learning-updated').textContent = lr.aggiornato_il ? `Agg.: ${lr.aggiornato_il.replace('T', ' ')}` : '--';
+      document.getElementById('l-closed-trades').textContent = lTot.n || 0;
+      document.getElementById('l-win-rate').textContent = `${(lTot.win_rate || 0).toFixed(1)}%`;
+      document.getElementById('l-profit-factor').textContent = (lTot.profit_factor || 0).toFixed(2);
+      const lPnlEl = document.getElementById('l-pnl-usd');
+      const pnlVal = Number(lTot.pnl_usd || 0);
+      lPnlEl.textContent = (pnlVal >= 0 ? '+' : '') + fmtUSD(pnlVal);
+      lPnlEl.className = `text-base font-bold ${pnlVal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      const lTbody = document.getElementById('learning-tbody');
+      lTbody.innerHTML = '';
+      const stratEntries = Object.entries(lStats.per_strategia || {});
+      if (stratEntries.length === 0) {
+        lTbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500">In attesa dei primi trade chiusi per calcolare le metriche.</td></tr>`;
+      } else {
+        stratEntries.sort((a, b) => (b[1].pnl_usd || 0) - (a[1].pnl_usd || 0)).forEach(([name, st]) => {
+          const sPnl = Number(st.pnl_usd || 0);
+          lTbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-2 px-3 font-semibold text-white">${name}</td>
+              <td class="py-2 px-3 text-right text-slate-300">${st.n}</td>
+              <td class="py-2 px-3 text-right ${st.win_rate >= 50 ? 'text-emerald-400' : 'text-amber-300'}">${st.win_rate.toFixed(1)}%</td>
+              <td class="py-2 px-3 text-right ${st.avg_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${st.avg_pct >= 0 ? '+' : ''}${st.avg_pct.toFixed(2)}%</td>
+              <td class="py-2 px-3 text-right font-bold ${sPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${sPnl >= 0 ? '+' : ''}${fmtUSD(sPnl)}</td>
+            </tr>
+          `;
+        });
+      }
 
       // Storico Ordini Alpaca
       const orders = d.recent_orders || [];
