@@ -42,6 +42,9 @@ def build_dashboard_payload() -> dict[str, Any]:
     clock = broker.is_market_open()
     portfolio_raw = broker.get_portfolio_state()
     watchlist = broker.get_watchlist_market_data()
+    for sym, info in watchlist.items():
+        info["category"] = config.TICKER_CATEGORIES.get(sym, "MULTI-ASSET")
+
     recent_orders = broker.get_recent_orders(limit=50)
     history_raw = broker.get_portfolio_history(period="1M", timeframe="1D")
     compact_mem = memory.load_compact_state()
@@ -119,6 +122,9 @@ def build_dashboard_payload() -> dict[str, Any]:
         "generated_at": now_rome.strftime("%d/%m/%Y %H:%M:%S"),
         "timezone": config.TIMEZONE,
         "paper_endpoint": config.PAPER_ENDPOINT_LOCKED,
+        "daily_target_pct": config.DAILY_NET_TARGET_PCT,
+        "max_single_asset_pct": round(config.MAX_SINGLE_ASSET_WEIGHT * 100.0, 1),
+        "allowed_tickers_count": len(config.ALLOWED_TICKERS),
         "clock": clock,
         "portfolio": {
             "ok": portfolio_raw.get("ok", False),

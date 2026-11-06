@@ -1,28 +1,33 @@
-# Contratto Costituzionale di "AI Capital"
+# Contratto Costituzionale di "AI Capital — 1% Daily Target Edition"
 
-Questo documento definisce i vincoli operativi, filosofici e deterministici inviolabili dell'agente di trading autonomo **AI Capital**.
+Questo documento definisce i vincoli operativi, quantitativi e deterministici dell'agente di trading autonomo **AI Capital** in configurazione **High-Alpha Multi-Asset**.
 
-## 1. Obiettivo Strategico
-- **Target:** Sovraperformare il benchmark `SPY` (S&P 500) con un orizzonte di posizionamento **swing / medio periodo**.
-- **Stile:** Pazienza asimmetrica, allocazione di capitale ragionata sui ritracciamenti e gestione rigorosa del rischio. **Nessun day trading frenetico** o scalping su rumore intraday.
+## 1. Obiettivo Strategico: +1.00% Netto al Giorno
+- **Target Primario:** Realizzare un rendimento netto del **+1,00% al giorno sull'Equity totale** (es. `+$1.000/giorno` su `$100.000` di capitale), sfruttando i titoli a maggiore volatilità, forza relativa (Momentum Breakout), ritracciamenti rapidi e rotazione tra asset class.
+- **Guadagno in Ogni Direzione del Mercato:** Nelle giornate ribassiste, l'agente può allocare liquidità su **ETF Inversi (`SQQQ`)** o difensivi (`GLD`, `TLT`), potendo così centrare il `+1,00%` giornaliero anche durante i sell-off di Wall Street senza mai ricorrere a vendite allo scoperto (Short a margine).
+- **Profit Locking (Difesa del Target):** Quando il P&L giornaliero netto raggiunge o supera il **`+1,00%`**, l'agente passa in modalità **Profit Lock**, liquidando le posizioni più volatili per cristallizzare il guadagno sul conto.
 
-## 2. Watchlist Chiusa (8 Ticker Autorizzati)
-L'agente è autorizzato ad analizzare e negoziare esclusivamente i seguenti 8 strumenti:
-- **ETF Indici Azionari:** `SPY` (S&P 500), `QQQ` (Nasdaq 100), `IWM` (Russell 2000)
-- **ETF Difensivi / Macro:** `GLD` (Oro), `TLT` (Treasury USA 20+ Yr)
-- **Mega-Cap Core:** `AAPL` (Apple), `MSFT` (Microsoft), `NVDA` (Nvidia)
-
-*Qualsiasi ordine su ticker esterni a questa lista viene rigettato deterministicamente.*
+## 2. Universo Multi-Asset Autorizzato (30 Strumenti ad Alta Liquidità)
+L'agente scansiona e opera su **30 strumenti USA** suddivisi in 5 cluster tattici:
+1. **ETF Indici & Tattici 3x (Long & Inverse):** `SPY`, `QQQ`, `IWM`, `TQQQ` (Nasdaq 3x Long), `SOXL` (Semiconduttori 3x Long), `SPXL` (S&P 500 3x Long), `SQQQ` (Nasdaq 3x Inverse per fasi ribassiste).
+2. **Mega-Cap & AI Momentum:** `NVDA`, `AAPL`, `MSFT`, `META`, `AMZN`, `GOOGL`, `TSLA`, `AMD`, `AVGO`, `PLTR`, `NFLX`, `CRM`.
+3. **High-Beta Fintech & Crypto-Proxy:** `COIN`, `MSTR`, `HOOD`, `SOFI`, `SHOP`.
+4. **Commodities & Macro:** `GLD` (Oro), `SLV` (Argento), `USO` (Petrolio), `TLT` (Treasury 20+ Yr).
+5. **Settori Ciclici:** `XLE` (Energia), `XLF` (Finanziari).
 
 ## 3. La Gabbia (Validazione Deterministica Pre-Ordine)
-Ogni decisione generata dall'AI deve superare il filtro deterministico (`risk_cage.py`) prima di raggiungere il broker:
-1. **Protezione Ambiente (Paper Only):** L'endpoint API deve essere rigorosamente bloccato su `https://paper-api.alpaca.markets`. Se viene rilevato qualsiasi altro endpoint (es. live trading), il sistema scatena un arresto immediato (`RuntimeError`).
-2. **Limite di Concentrazione (Max 20% Equity):** Nessun singolo asset può superare il **20% del valore totale del portafoglio (`Equity`)**, sommando il valore della posizione già detenuta in portafoglio e il controvalore del nuovo ordine di acquisto.
-3. **Solo Long Coperto da Liquidità Reale:** Sono consentite esclusivamente posizioni **Long** (`BUY` per aprire/incrementare, `SELL` solo fino alla quantità effettivamente posseduta). Vietato lo short selling e vietato l'uso di leva finanziaria (`Cash disponibile >= costo_totale_ordini_buy`).
-4. **Auto-Critica Obbligatoria e Anti-FOMO:** Ogni proposta operativa deve contenere il campo JSON `"perche_potrei_avere_torto"` compilato con un'analisi reale dei rischi contrari (non vuoto e significativo). È vietato acquistare sui massimi di periodo senza un ritracciamento tecnico (`acquisto_sui_massimi_senza_ritracciamento` deve essere `False`).
+Ogni ordine generato dall'AI o dal motore di Profit-Lock deve superare il filtro deterministico (`risk_cage.py`):
+1. **Protezione Ambiente (Paper Only):** Endpoint bloccato su `https://paper-api.alpaca.markets`. Arresto immediato (`RuntimeError`) se viene rilevato qualsiasi altro endpoint.
+2. **Limite di Concentrazione per Singolo Asset:** Max **25% dell'Equity totale** su un singolo strumento (configurabile, con soglia standard 20%-25% verificata al centesimo incluso il già detenuto).
+3. **Solo Acquisti Coperti da Liquidità Reale (`Cash >= costo_ordine`):** Zero leva del broker, nessun margine passivo e divieto assoluto di vendere allo scoperto azioni non possedute (`SELL` consentito solo fino alla quantità effettivamente in portafoglio).
+4. **Auto-Critica Obbligatoria (`perche_potrei_avere_torto`):** Ogni ordine deve esplicitare chiaramente lo scenario avverso e il livello di invalidazione tecnica.
+5. **Regole Automatiche di Take-Profit / Stop-Loss Intraday:**
+   - **Portfolio Target Lock (`+1.00%` Equity giornaliero):** se l'Equity totale guadagna `>= +1.00%` rispetto alla chiusura precedente (`last_equity`), il sistema può incassare i profitti sulle posizioni aperte.
+   - **Single-Asset Take Profit (`+2.20%`) & Stop Loss (`-1.50%`):** protezione automatica sulle singole posizioni per tagliare rapidamente le perdite e far correre/incassare i trade vincenti.
 
-## 4. Routine Giornaliera (`Europe/Rome`)
-- **`09:00` — Pre-Market & Pianificazione:** Analisi delle chiusure della sessione precedente, lettura della memoria compatta (`memory/stato_compatto.json`), generazione del Piano Operativo giornaliero e invio su Telegram.
-- **`15:35` — Esecuzione Apertura USA:** Verifica apertura effettiva del mercato USA (5 minuti dopo la campanella delle 15:30 per lasciar stabilizzare gli spread), validazione degli ordini tramite **La Gabbia**, esecuzione su Alpaca Paper e notifica su Telegram.
-- **`18:30` — Check Metà Seduta:** Controllo dello stato del portafoglio e del mercato a metà giornata USA. Nessuna operatività ordinaria: interviene solo in caso di anomalie critiche o necessità difensive urgenti.
-- **`21:05` — Bilancio Post-Market & Memoria:** Calcolo del P&L giornaliero e cumulato rispetto al benchmark `SPY`, aggiornamento di `memory/storico_completo.json` e compressione in `memory/stato_compatto.json` per il giorno successivo, con invio del report serale su Telegram.
+## 4. Routine Giornaliera Potenziata (`Europe/Rome`)
+- **`09:00` — Pre-Market & Piano Multi-Asset:** Scansione dei 30 strumenti, selezione dei migliori setup ad alto potenziale e invio del Piano su Telegram.
+- **`15:35` — Apertura USA & Esecuzione Aggressiva:** Ingresso sui setup validati da **La Gabbia** dopo i primi 5 minuti di apertura.
+- **`17:00` & `18:30` — Check Intraday, Stop-Loss & Rotazione:** Verifica intermedia; incassa i trade già a target (`+1%` portafoglio o `+2.2%` singolo titolo), taglia i rami secchi (`-1.5%`) e ruota se necessario.
+- **`20:30` — Power Hour & Profit Locking:** Valutazione pre-chiusura USA per consolidare l'obiettivo del `+1.00%` giornaliero.
+- **`21:50` — Bilancio Post-Market (21:05/21:50) & Memoria:** Calcolo P&L netto giornaliero rispetto al target del `+1.00%` e al benchmark `SPY`, aggiornamento memoria compatta e pubblicazione automatica sul Gestionale Web.

@@ -1,15 +1,19 @@
 name: AI Capital Autonomous Trader
 
 on:
-  # Pianificazione automatica dal Lunedì al Venerdì (orari UTC equivalenti a Europe/Rome CET: UTC+1)
-  # 08:00 UTC = 09:00 Roma (Pre-market & Piano)
-  # 14:35 UTC = 15:35 Roma (Apertura USA & Esecuzione La Gabbia)
-  # 17:30 UTC = 18:30 Roma (Check Metà Seduta)
-  # 20:05 UTC = 21:05 Roma (Bilancio Serale P&L vs SPY & Memoria)
+  # Pianificazione automatica Potenziata (+1% Daily Target) dal Lunedì al Venerdì (UTC -> Europe/Rome CET: UTC+1)
+  # 08:00 UTC = 09:00 Roma (Pre-market & Piano 30 Strumenti)
+  # 14:35 UTC = 15:35 Roma (Apertura USA & Esecuzione Aggressiva)
+  # 16:00 UTC = 17:00 Roma (Check Intraday 1: Profit-Lock +1% / Stop-Loss)
+  # 17:30 UTC = 18:30 Roma (Check Intraday 2: Metà Seduta & Rotazione)
+  # 19:30 UTC = 20:30 Roma (Power Hour: Consolidamento Target +1%)
+  # 20:05 UTC = 21:05 Roma (Bilancio Serale P&L vs Target +1% & Memoria)
   schedule:
     - cron: '0 8 * * 1-5'
     - cron: '35 14 * * 1-5'
+    - cron: '0 16 * * 1-5'
     - cron: '30 17 * * 1-5'
+    - cron: '30 19 * * 1-5'
     - cron: '5 20 * * 1-5'
 
   # Permette anche l'avvio manuale con un clic da GitHub (anche da smartphone)

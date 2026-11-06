@@ -24,7 +24,10 @@ class TestDevilAdvocate(unittest.TestCase):
     """Suite di stress test deterministica su tutti i 6 casi critici."""
 
     def setUp(self) -> None:
-        self.cage = RiskCage(base_url="https://paper-api.alpaca.markets")
+        self.cage = RiskCage(
+            base_url="https://paper-api.alpaca.markets",
+            max_single_asset_weight=0.20,
+        )
         self.prices = {
             "SPY": 500.0,
             "QQQ": 400.0,
@@ -35,23 +38,24 @@ class TestDevilAdvocate(unittest.TestCase):
             "MSFT": 400.0,
             "NVDA": 100.0,
             "TSLA": 250.0,
+            "GME_UNLISTED": 25.0,
         }
 
     def test_1_forbidden_ticker_and_short_selling(self) -> None:
-        """Caso 1: Ordine su ticker vietato (TSLA) o vendita allo scoperto (Short) + blocco endpoint Live."""
+        """Caso 1: Ordine su ticker vietato (GME_UNLISTED) o vendita allo scoperto (Short) + blocco endpoint Live."""
         # 1a. Verifica blocco immediato endpoint Live
         with self.assertRaises(RuntimeError):
             RiskCage(base_url="https://api.alpaca.markets")
 
-        # 1b. Ordine su TSLA (fuori watchlist) e tentativo di Short (SELL non posseduto / azione SHORT)
+        # 1b. Ordine su GME_UNLISTED (fuori dall'universo dei 30 strumenti) e tentativo di Short
         orders = [
             {
-                "ticker": "TSLA",
+                "ticker": "GME_UNLISTED",
                 "azione": "BUY",
                 "quantita": 5,
                 "acquisto_sui_massimi_senza_ritracciamento": False,
                 "razionale_tecnico": "Breakout tecnico",
-                "perche_potrei_avere_torto": "Volatilità elevata sul settore auto elettriche.",
+                "perche_potrei_avere_torto": "Volatilità estrema su meme stock non autorizzata.",
             },
             {
                 "ticker": "NVDA",

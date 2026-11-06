@@ -1,10 +1,9 @@
-"""Motore decisionale AI Capital basato sull'SDK ufficiale `google-genai` con output Pydantic strutturato."""
+"""Motore decisionale AI Capital (1% Daily Target Edition) basato su `google-genai` con output Pydantic strutturato."""
 
 from __future__ import annotations
 
 import json
 import logging
-import time
 from typing import Any, Literal
 
 from google import genai
@@ -15,33 +14,76 @@ import config
 
 logger = logging.getLogger("AICapital.AITrader")
 
+AllowedTickerLiteral = Literal[
+    "SPY",
+    "QQQ",
+    "IWM",
+    "TQQQ",
+    "SOXL",
+    "SPXL",
+    "SQQQ",
+    "NVDA",
+    "AAPL",
+    "MSFT",
+    "META",
+    "AMZN",
+    "GOOGL",
+    "TSLA",
+    "AMD",
+    "AVGO",
+    "PLTR",
+    "NFLX",
+    "CRM",
+    "COIN",
+    "MSTR",
+    "HOOD",
+    "SOFI",
+    "SHOP",
+    "GLD",
+    "SLV",
+    "USO",
+    "TLT",
+    "XLE",
+    "XLF",
+]
+
 
 class OrdineProposto(BaseModel):
     """Singolo ordine proposto dall'AI in formato rigorosamente strutturato."""
 
-    ticker: Literal["SPY", "QQQ", "IWM", "GLD", "TLT", "AAPL", "MSFT", "NVDA"] = Field(
-        description="Ticker appartenente esclusivamente alla Watchlist Chiusa di 8 asset."
+    ticker: AllowedTickerLiteral = Field(
+        description="Ticker appartenente all'universo Multi-Asset di 30 strumenti autorizzati."
     )
     azione: Literal["BUY", "SELL", "HOLD"] = Field(
-        description="Azione operativa (solo posizioni Long: BUY o SELL di asset posseduti)."
+        description="Azione operativa (solo posizioni Long: BUY o SELL di asset posseduti; usa SQQQ per guadagnare dai ribassi)."
     )
     quantita: float = Field(
         ge=0.0,
         description="Numero di azioni/quote da negoziare (>0 per BUY/SELL, 0 per HOLD).",
     )
+    strategia: Literal[
+        "MOMENTUM_BREAKOUT",
+        "PULLBACK_REVERSAL",
+        "TAKE_PROFIT_1PCT",
+        "STOP_LOSS_DEFENSE",
+        "INVERSE_HEDGE",
+    ] = Field(
+        default="PULLBACK_REVERSAL",
+        description="Strategia tattica applicata per contribuire al target del +1% giornaliero.",
+    )
     acquisto_sui_massimi_senza_ritracciamento: bool = Field(
         default=False,
-        description="True se il titolo è sui massimi senza alcun ritracciamento (vieta il BUY).",
+        description="True SOLO se è un acquisto FOMO cieco su ipercomprato estremo senza catalizzatore.",
     )
     razionale_tecnico: str = Field(
         min_length=5,
         max_length=220,
-        description="Sintesi concisa del motivo swing/medio termine.",
+        description="Sintesi concisa del setup tecnico/quantitativo.",
     )
     perche_potrei_avere_torto: str = Field(
         min_length=5,
         max_length=250,
-        description="OBBLIGATORIO: analisi critica concreta del perché questa operazione potrebbe fallire.",
+        description="OBBLIGATORIO: analisi critica concreta del rischio contrario e livello di stop.",
     )
 
     @field_validator("perche_potrei_avere_torto")
@@ -62,20 +104,20 @@ class DecisioneTradingAI(BaseModel):
     sentiment_mercato: str = Field(
         min_length=5,
         max_length=240,
-        description="Sintesi macro/tecnica ultra-compatta.",
+        description="Sintesi macro, volatilità e direzione prevalente (Risk-On vs Risk-Off).",
     )
     intervento_critico_necessario: bool = Field(
         default=False,
-        description="Usato a metà seduta (18:30): True solo in caso di emergenza reale.",
+        description="True a metà seduta se serve prendere profitto (+1% raggiunto), tagliare perdite o ruotare.",
     )
     ordini: list[OrdineProposto] = Field(
         default_factory=list,
-        description="Lista di ordini operativi (vuota se nessuna azione necessaria).",
+        description="Lista di ordini operativi (BUY per entrare, SELL per incassare profitti o chiudere debolezza).",
     )
     nota_giorno_precedente: str = Field(
         min_length=5,
         max_length=350,
-        description="Nota sintetica per la sessione del giorno successivo.",
+        description="Nota operativa per la sessione successiva con focus sul target +1% netto giornaliero.",
     )
     nuova_regola_appresa: str = Field(
         default="",
@@ -85,11 +127,13 @@ class DecisioneTradingAI(BaseModel):
 
 
 SYSTEM_INSTRUCTION_COMPACT = (
-    "Sei AI Capital, Senior Quantitative Swing Trader. Rispetta contratto.md: "
-    "1) Obiettivo: battere SPY nel medio periodo senza day trading frenetico. "
-    "2) Watchlist chiusa: SPY, QQQ, IWM, GLD, TLT, AAPL, MSFT, NVDA. "
-    "3) Max 20% Equity per singolo asset, solo posizioni Long coperte da Cash reale. "
-    "4) Compila SEMPRE 'perche_potrei_avere_torto' con rischi reali e non comprare sui massimi senza ritracciamento. "
+    "Sei AI Capital (1% Daily Target Edition), Senior Quantitative Momentum & Tactical Trader. "
+    "Obiettivo primario: realizzare al netto +1.00% al giorno sull'Equity totale. "
+    "Regole operative: "
+    "1) Universo di 30 ticker ad alta liquidità/beta (inclusi ETF 3x TQQQ, SOXL, SPXL per fasi rialziste e SQQQ per guadagnare nei crolli di mercato senza short selling). "
+    "2) Max peso per singolo asset indicato nel prompt (default 20-25% Equity), solo acquisti coperti da Cash reale. "
+    "3) Gestione attiva: proponi SELL per incassare profitti quando il portafoglio si avvicina/supera +1.00% giornaliero o una posizione guadagna > +2%, e taglia subito le posizioni deboli (< -1.5%). "
+    "4) Compila SEMPRE 'perche_potrei_avere_torto' con rischi reali e non fare acquisti FOMO ciechi (imposta acquisto_sui_massimi_senza_ritracciamento=false sui setup validi). "
     "Rispondi SOLO in JSON conforme allo schema."
 )
 
@@ -118,6 +162,41 @@ class AITrader:
             )
         return self._client
 
+    def _select_top_market_opportunities(
+        self,
+        market_snapshot: dict[str, Any],
+        held_tickers: set[str],
+        max_tickers: int = 16,
+    ) -> dict[str, Any]:
+        """Seleziona i benchmark, i titoli già in portafoglio e i Top Mover per restare sempre < 2.500 token."""
+        if len(market_snapshot) <= max_tickers:
+            return market_snapshot
+
+        priority = {"SPY", "QQQ", "TQQQ", "SQQQ", "SOXL", "NVDA", "TSLA", "GLD"} | set(
+            held_tickers
+        )
+        selected: dict[str, Any] = {}
+        for sym in priority:
+            if sym in market_snapshot:
+                selected[sym] = market_snapshot[sym]
+
+        # Ordina i restanti per ampiezza di movimento giornaliero (opportunità di +1% intraday)
+        remaining = [
+            (sym, info)
+            for sym, info in market_snapshot.items()
+            if sym not in selected
+        ]
+        remaining.sort(
+            key=lambda x: abs(float(x[1].get("daily_change_pct", 0.0))),
+            reverse=True,
+        )
+        for sym, info in remaining:
+            if len(selected) >= max_tickers:
+                break
+            selected[sym] = info
+
+        return selected
+
     def build_compact_prompt(
         self,
         fase: Literal["morning", "open", "midday", "close"],
@@ -125,15 +204,35 @@ class AITrader:
         market_snapshot: dict[str, Any],
         compact_memory_json: str,
     ) -> str:
-        """Costruisce un prompt compatto (< 2.500 token totali) con stato portafoglio, prezzi e memoria."""
+        """Costruisce un prompt compatto (< 2.500 token totali) con focus sul target +1% giornaliero."""
+        equity = float(portfolio_summary.get("equity", 0.0))
+        last_equity = float(portfolio_summary.get("last_equity") or equity or 100000.0)
+        daily_pnl = equity - last_equity
+        daily_pnl_pct = (daily_pnl / last_equity * 100.0) if last_equity > 0 else 0.0
+        positions = portfolio_summary.get("positions", {}) or {}
+
+        filtered_market = self._select_top_market_opportunities(
+            market_snapshot=market_snapshot,
+            held_tickers=set(positions.keys()),
+        )
+
         payload = {
             "fase": fase,
-            "portafoglio": {
-                "equity": round(float(portfolio_summary.get("equity", 0.0)), 2),
-                "cash": round(float(portfolio_summary.get("cash", 0.0)), 2),
-                "posizioni": portfolio_summary.get("positions", {}),
+            "target_giornaliero": {
+                "obiettivo_netto_pct": config.DAILY_NET_TARGET_PCT,
+                "pnl_oggi_usd": round(daily_pnl, 2),
+                "pnl_oggi_pct": round(daily_pnl_pct, 2),
+                "target_raggiunto": daily_pnl_pct >= config.DAILY_NET_TARGET_PCT,
+                "max_peso_singolo_asset_pct": round(
+                    config.MAX_SINGLE_ASSET_WEIGHT * 100, 1
+                ),
             },
-            "mercato": market_snapshot,
+            "portafoglio": {
+                "equity": round(equity, 2),
+                "cash": round(float(portfolio_summary.get("cash", 0.0)), 2),
+                "posizioni": positions,
+            },
+            "mercato_top_opportunità": filtered_market,
             "memoria_compatta": json.loads(compact_memory_json)
             if compact_memory_json
             else {},
@@ -156,8 +255,6 @@ class AITrader:
                     raise ValueError("Risposta AI vuota.")
                 data = json.loads(raw_text)
 
-            # Filtra eventuali singoli ordini privi di 'perche_potrei_avere_torto' valido
-            # oppure rifiuta l'intero blocco se malformato
             decision = DecisioneTradingAI.model_validate(data)
             return decision
         except Exception as exc:
@@ -173,7 +270,7 @@ class AITrader:
         market_snapshot: dict[str, Any],
         compact_memory_json: str,
     ) -> DecisioneTradingAI | None:
-        """Invoca Gemini (`google-genai`) con `response_schema=DecisioneTradingAI` e `temperature=0.2`."""
+        """Invoca Gemini (`google-genai`) con `response_schema=DecisioneTradingAI` e fallback rapido."""
         prompt = self.build_compact_prompt(
             fase=fase,
             portfolio_summary=portfolio_summary,
@@ -182,7 +279,11 @@ class AITrader:
         )
 
         fallback_chain = [self.model_name]
-        for candidate in ("gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"):
+        for candidate in (
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.7-flash",
+        ):
             if candidate not in fallback_chain:
                 fallback_chain.append(candidate)
 
@@ -208,6 +309,8 @@ class AITrader:
                         model_to_try,
                     )
                     continue
-                logger.error("Errore chiamata Gemini API (%s): %s", model_to_try, exc)
+                logger.error(
+                    "Errore chiamata Gemini API (%s): %s", model_to_try, exc
+                )
                 return None
         return None
