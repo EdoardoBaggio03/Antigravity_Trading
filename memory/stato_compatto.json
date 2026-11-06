@@ -1,0 +1,34 @@
+{
+  "ultimo_aggiornamento": "2026-11-06T14:07:51+01:00",
+  "spy_prezzo_riferimento_iniziale": null,
+  "equity_iniziale": null,
+  "nota_giorno_precedente": "Giorno 0: Portafoglio appena inizializzato. Osservare i livelli chiave prima di allocare.",
+  "regole_apprese": [
+    "Non inseguire mai rialzi estesi senza ritracciamento.",
+    "Mantenere liquidità strategica per assorbire la volatilità."
+  ],
+  "piano_mattutino_corrente": {
+    "timestamp": "2026-11-06T14:07:51+01:00",
+    "sentiment_mercato": "Forte sell-off guidato dal settore tech con NVDA in flessione dell'8.76% e QQQ a -5.09%. Il ritracciamento generale su SPY (-4.19% dai massimi) offre un prima opportunita di ingresso swing difensivo su asset primari.",
+    "ordini_pianificati": [
+      {
+        "ticker": "NVDA",
+        "azione": "BUY",
+        "quantita": 100.0,
+        "acquisto_sui_massimi_senza_ritracciamento": false,
+        "razionale_tecnico": "Forte contrazione del 6.90% dai massimi con ipervenduto di breve. Valore totale posizione sotto il cap del 20% equity.",
+        "perche_potrei_avere_torto": "La debolezza del settore dei semiconduttori potrebbe estendersi ulteriormente se la volatilità di mercato dovesse accelerare al ribasso."
+      },
+      {
+        "ticker": "SPY",
+        "azione": "BUY",
+        "quantita": 25.0,
+        "acquisto_sui_massimi_senza_ritracciamento": false,
+        "razionale_tecnico": "Pullback del 4.19% dai massimi su indice benchmark. Primo ingresso scalettato nell'ottica di battere SPY a medio termine.",
+        "perche_potrei_avere_torto": "Un peggioramento delle condizioni macroeconomiche generali potrebbe causare un break ribassista dei supporti chiave di medio periodo."
+      }
+    ]
+  },
+  "posizioni_attuali": {},
+  "ultimi_5_giorni_operazioni": []
+}

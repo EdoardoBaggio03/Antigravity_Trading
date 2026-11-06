@@ -1,0 +1,17 @@
+# Sicurezza: MAI caricare il file .env con le chiavi reali
+.env
+.env.*
+!.env.example
+
+# Python cache e ambienti virtuali
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# File temporanei e di backup memoria
+*.tmp
+*.bak

@@ -1,0 +1,82 @@
+name: AI Capital Autonomous Trader
+
+on:
+  # Pianificazione automatica dal Lunedì al Venerdì (orari UTC equivalenti a Europe/Rome CET: UTC+1)
+  # 08:00 UTC = 09:00 Roma (Pre-market & Piano)
+  # 14:35 UTC = 15:35 Roma (Apertura USA & Esecuzione La Gabbia)
+  # 17:30 UTC = 18:30 Roma (Check Metà Seduta)
+  # 20:05 UTC = 21:05 Roma (Bilancio Serale P&L vs SPY & Memoria)
+  schedule:
+    - cron: '0 8 * * 1-5'
+    - cron: '35 14 * * 1-5'
+    - cron: '30 17 * * 1-5'
+    - cron: '5 20 * * 1-5'
+
+  # Permette anche l'avvio manuale con un clic da GitHub (anche da smartphone)
+  workflow_dispatch:
+    inputs:
+      sessione:
+        description: 'Quale sessione vuoi eseguire?'
+        required: true
+        default: 'morning'
+        type: choice
+        options:
+          - morning
+          - open
+          - midday
+          - close
+          - auto
+
+permissions:
+  contents: write
+
+jobs:
+  run-trader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Esegui Stress Test Pre-Volo (0 Token)
+        run: python test_devil_advocate.py
+
+      - name: Esegui Sessione AI Capital
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-3.8-flash' }}
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          ALPACA_BASE_URL: https://paper-api.alpaca.markets
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TIMEZONE: Europe/Rome
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python main.py --${{ inputs.sessione }}
+          else
+            python main.py --auto
+          fi
+
+      - name: Salva Memoria Aggiornata nel Repository
+        run: |
+          git config user.name "AI Capital Bot"
+          git config user.email "aicapital-bot@users.noreply.github.com"
+          git add memory/stato_compatto.json memory/storico_completo.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(memory): aggiornamento automatico stato AI Capital [skip ci]"
+            git pull --rebase origin main || true
+            git push
+          else
+            echo "Nessuna modifica ai file di memoria da salvare."
+          fi
