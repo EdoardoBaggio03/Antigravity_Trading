@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Capital — Quantitative Portfolio Terminal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bg0: '#090D16',
+            bg1: '#111827',
+            bg2: '#1E293B',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #090D16;
+      color: #F1F5F9;
+      font-variant-numeric: tabular-nums;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.85);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+      backdrop-filter: blur(12px);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090D16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- TOP NAVBAR -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-[#090D16]/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 font-mono font-bold text-lg text-white">
+          AI
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="font-bold text-lg tracking-tight text-white">AI CAPITAL</h1>
+            <span class="px-2 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              🔒 Paper Locked
+            </span>
+            <span id="market-badge" class="px-2.5 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-wider rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              Verifica Mercato...
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Senior Quantitative Swing Trader • Benchmark <span class="font-mono text-indigo-400">SPY</span> • Max 20% Equity/Asset
+          </p>
+        </div>
+      </div>
+
+      <!-- Actions & Sync status -->
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span id="last-sync" class="text-xs font-mono text-slate-400 mr-2">Ultimo agg.: --:--:--</span>
+        <button id="btn-refresh" onclick="loadDashboard(true)" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1.5 shadow-sm">
+          <span id="refresh-icon">🔄</span> Aggiorna Live
+        </button>
+        <div id="local-controls" class="hidden items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-lg p-1">
+          <button onclick="triggerSession('morning')" title="Esegui Analisi 09:00" class="px-2.5 py-1 rounded text-xs font-mono hover:bg-slate-800 text-slate-300 transition">🌅 09:00</button>
+          <button onclick="triggerSession('open')" title="Esegui Apertura 15:35" class="px-2.5 py-1 rounded text-xs font-mono hover:bg-slate-800 text-slate-300 transition">🔔 15:35</button>
+          <button onclick="triggerSession('midday')" title="Esegui Check 18:30" class="px-2.5 py-1 rounded text-xs font-mono hover:bg-slate-800 text-slate-300 transition">🛡️ 18:30</button>
+          <button onclick="triggerSession('close')" title="Esegui Bilancio 21:05" class="px-2.5 py-1 rounded text-xs font-mono hover:bg-slate-800 text-slate-300 transition">🌙 21:05</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- Toast alert -->
+    <div id="toast" class="hidden rounded-xl p-3.5 text-sm font-medium border bg-indigo-950/80 border-indigo-500/40 text-indigo-200 flex items-center justify-between">
+      <span id="toast-msg">Operazione in corso...</span>
+      <button onclick="document.getElementById('toast').classList.add('hidden')" class="text-xs underline ml-4">Chiudi</button>
+    </div>
+
+    <!-- 1. KPI CARDS ROW -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Equity Totale -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <span>Valore Portafoglio (Equity)</span>
+          <span class="text-indigo-400 font-mono">USD</span>
+        </div>
+        <div id="kpi-equity" class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-white">$---,---.--</div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+          <span class="text-slate-400">Capitale Iniziale:</span>
+          <span id="kpi-initial-equity" class="font-mono text-slate-300">$100,000.00</span>
+        </div>
+      </div>
+
+      <!-- P&L Giornaliero & Totale -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <span>P&L Giornaliero (Oggi)</span>
+          <span id="kpi-daily-badge" class="px-2 py-0.5 rounded text-[11px] font-mono">--%</span>
+        </div>
+        <div id="kpi-daily-pnl" class="mt-2 text-2xl sm:text-3xl font-bold font-mono">$0.00</div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+          <span class="text-slate-400">P&L Da Inizio:</span>
+          <span id="kpi-total-pnl" class="font-mono font-semibold">$0.00 (0.00%)</span>
+        </div>
+      </div>
+
+      <!-- Liquidità (Cash) & Esposizione -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <span>Liquidità Reale (Cash)</span>
+          <span class="text-emerald-400 font-mono">Zero Leva</span>
+        </div>
+        <div id="kpi-cash" class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-white">$---,---.--</div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+          <span class="text-slate-400">Investito a Mercato:</span>
+          <span id="kpi-invested" class="font-mono text-indigo-300">$0.00 (0.0%)</span>
+        </div>
+      </div>
+
+      <!-- Benchmark SPY & La Gabbia -->
+      <div class="glass-card rounded-2xl p-5">
+        <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <span>Confronto Benchmark SPY</span>
+          <span id="kpi-spy-price" class="font-mono text-slate-300">SPY $---.--</span>
+        </div>
+        <div id="kpi-alpha" class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-white">+0.00%</div>
+        <div class="mt-2 flex items-center justify-between text-xs">
+          <span class="text-slate-400">SPY Oggi:</span>
+          <span id="kpi-spy-change" class="font-mono">0.00%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CHARTS & CONCENTRATION CAGE -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Curva Equity -->
+      <div class="glass-card rounded-2xl p-5 lg:col-span-2 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-semibold text-white">Andamento Capitale (Equity Curve)</h2>
+            <p class="text-xs text-slate-400">Storico giornaliero Alpaca Paper + valutazione live della sessione corrente</p>
+          </div>
+          <span class="text-xs font-mono px-2.5 py-1 rounded-md bg-slate-800 text-slate-300">Timeframe: 1D (Live)</span>
+        </div>
+        <div class="relative h-64 w-full">
+          <canvas id="equityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- La Gabbia: Monitor Concentrazione 20% -->
+      <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <h2 class="text-base font-semibold text-white">🛡️ La Gabbia — Limite 20%</h2>
+            <span class="text-[11px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">Max 20% / Asset</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">Peso attuale di ciascuna posizione rispetto all'Equity totale</p>
+          <div id="cage-bars" class="space-y-3.5">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-800/80">
+          <div class="relative h-36 w-full flex items-center justify-center">
+            <canvas id="allocationChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. POSIZIONI APERTE IN PORTAFOGLIO -->
+    <section class="glass-card rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-semibold text-white">💼 Posizioni Attuali in Portafoglio</h2>
+          <p class="text-xs text-slate-400">Posizioni Long coperte da liquidità reale detenute su Alpaca Paper</p>
+        </div>
+        <span id="positions-count" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300">0 Asset attivi</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800/80 text-[11px] font-mono uppercase text-slate-400 bg-slate-900/50">
+              <th class="py-3 px-6">Ticker</th>
+              <th class="py-3 px-4 text-right">Quantità</th>
+              <th class="py-3 px-4 text-right">Prezzo Carico</th>
+              <th class="py-3 px-4 text-right">Prezzo Attuale</th>
+              <th class="py-3 px-4 text-right">Controvalore</th>
+              <th class="py-3 px-4 text-right">Peso Equity (Max 20%)</th>
+              <th class="py-3 px-6 text-right">P&L Aperto ($ / %)</th>
+            </tr>
+          </thead>
+          <tbody id="positions-tbody" class="divide-y divide-slate-800/60 text-sm font-mono">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. AI BRAIN (PIANO & RAGIONAMENTO) + WATCHLIST SCANNER -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Cabina di Regia AI (7 cols) -->
+      <div class="glass-card rounded-2xl p-6 lg:col-span-7 space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="text-base font-semibold text-white">🧠 Mente dell'Agente & Piano Operativo</h2>
+            <p class="text-xs text-slate-400">Analisi strutturata Gemini (`google-genai`) e autocritica obbligatoria</p>
+          </div>
+          <span id="plan-timestamp" class="text-xs font-mono text-indigo-400">--</span>
+        </div>
+
+        <!-- Sentiment & Nota -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="text-[11px] font-mono uppercase text-indigo-400 mb-1">Sentiment di Mercato</div>
+            <p id="ai-sentiment" class="text-xs text-slate-200 leading-relaxed">--</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="text-[11px] font-mono uppercase text-emerald-400 mb-1">Nota Strategica in Memoria</div>
+            <p id="ai-note" class="text-xs text-slate-200 leading-relaxed">--</p>
+          </div>
+        </div>
+
+        <!-- Ordini Pianificati con "Perché potrei avere torto" -->
+        <div>
+          <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 mb-2.5">Decisioni & Autocensura ("L'Avvocato del Diavolo")</h3>
+          <div id="ai-planned-orders" class="space-y-3">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Regole Apprese -->
+        <div class="pt-2 border-t border-slate-800/80">
+          <div class="text-[11px] font-mono uppercase text-slate-400 mb-2">Regole Costituzionali & Apprese in Memoria Compatta</div>
+          <ul id="ai-rules" class="space-y-1 text-xs text-slate-300 list-disc list-inside">
+          </ul>
+        </div>
+      </div>
+
+      <!-- Watchlist Chiusa 8 Ticker (5 cols) -->
+      <div class="glass-card rounded-2xl overflow-hidden lg:col-span-5 flex flex-col">
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-white">🔭 Watchlist Chiusa (8 Ticker)</h2>
+            <p class="text-xs text-slate-400">Prezzi live e distanza dai massimi (Pullback)</p>
+          </div>
+          <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Solo 8 Autorizzati</span>
+        </div>
+        <div class="overflow-x-auto flex-1">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800/80 text-[11px] font-mono uppercase text-slate-400 bg-slate-900/50">
+                <th class="py-2.5 px-4">Ticker</th>
+                <th class="py-2.5 px-3 text-right">Prezzo</th>
+                <th class="py-2.5 px-3 text-right">Oggi %</th>
+                <th class="py-2.5 px-4 text-right">Dai Massimi</th>
+              </tr>
+            </thead>
+            <tbody id="watchlist-tbody" class="divide-y divide-slate-800/60 text-xs font-mono">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. STORICO MOVIMENTI & ORDINI ALPACA -->
+    <section class="glass-card rounded-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-base font-semibold text-white">📜 Registro Movimenti & Storico Ordini (Alpaca Paper)</h2>
+          <p class="text-xs text-slate-400">Tutti gli ordini eseguiti, in coda o processati sul conto Paper</p>
+        </div>
+        <span id="orders-count" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300">0 Movimenti</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800/80 text-[11px] font-mono uppercase text-slate-400 bg-slate-900/50">
+              <th class="py-3 px-6">Data / Ora</th>
+              <th class="py-3 px-4">Operazione</th>
+              <th class="py-3 px-4">Ticker</th>
+              <th class="py-3 px-4 text-right">Quantità</th>
+              <th class="py-3 px-4 text-right">Prezzo Eseguito</th>
+              <th class="py-3 px-4 text-right">Controvalore ($)</th>
+              <th class="py-3 px-4 text-center">Stato</th>
+              <th class="py-3 px-6 text-right">Order ID</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody" class="divide-y divide-slate-800/60 text-xs font-mono">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-center text-xs text-slate-500 border-t border-slate-800/60 mt-8">
+    AI Capital Quantitative System • Endpoint vincolato: <span class="font-mono text-slate-400">https://paper-api.alpaca.markets</span> • Fuso orario: <span class="font-mono text-slate-400">Europe/Rome</span>
+  </footer>
+
+  <script>
+    let equityChartInstance = null;
+    let allocationChartInstance = null;
+
+    function fmtUSD(val) {
+      const n = Number(val || 0);
+      return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtPct(val, showPlus = true) {
+      const n = Number(val || 0);
+      const sign = (showPlus && n > 0) ? '+' : '';
+      return `${sign}${n.toFixed(2)}%`;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.classList.remove('hidden');
+    }
+
+    async function triggerSession(phase) {
+      showToast(`⏳ Esecuzione sessione '${phase}' in corso... attendere.`);
+      try {
+        const res = await fetch(`/api/run-session?phase=${encodeURIComponent(phase)}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`✅ Sessione '${phase}' completata con successo! Dati aggiornati.`);
+          await loadDashboard(true);
+        } else {
+          showToast(`⚠️ Sessione '${phase}' terminata con avviso: ${data.error || data.reason || 'vedi log'}`);
+          await loadDashboard(true);
+        }
+      } catch (e) {
+        showToast(`❌ Comando disponibile solo quando avvii 'python dashboard.py' in locale.`);
+      }
+    }
+
+    async function fetchDashboardPayload() {
+      try {
+        const res = await fetch('/api/dashboard', { cache: 'no-store' });
+        if (res.ok) {
+          document.getElementById('local-controls').classList.remove('hidden');
+          document.getElementById('local-controls').classList.add('flex');
+          return await res.json();
+        }
+      } catch (_) {}
+      try {
+        const fallback1 = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
+        if (fallback1.ok) return await fallback1.json();
+      } catch (_) {}
+      const fallback2 = await fetch('./docs/data.json?t=' + Date.now(), { cache: 'no-store' });
+      return await fallback2.json();
+    }
+
+    async function loadDashboard(isManual = false) {
+      const btn = document.getElementById('btn-refresh');
+      btn.disabled = true;
+      btn.classList.add('opacity-70');
+      try {
+        const d = await fetchDashboardPayload();
+        renderDashboard(d);
+      } catch (err) {
+        console.error('Errore caricamento dati dashboard:', err);
+        showToast('Errore durante il caricamento dei dati.');
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70');
+      }
+    }
+
+    function renderDashboard(d) {
+      document.getElementById('last-sync').textContent = `Ultimo agg.: ${d.generated_at || '--'}`;
+
+      // Badge Mercato USA
+      const mb = document.getElementById('market-badge');
+      if (d.clock && d.clock.is_open) {
+        mb.textContent = '🟢 Wall Street APERTA';
+        mb.className = 'px-2.5 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+      } else {
+        mb.textContent = '🔴 Wall Street CHIUSA';
+        mb.className = 'px-2.5 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-wider rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+      }
+
+      // KPI Cards
+      const p = d.portfolio || {};
+      const equity = Number(p.equity || 0);
+      const initialEq = Number(p.initial_equity || 100000);
+      const cash = Number(p.cash || 0);
+      const invested = Number(p.invested_value || 0);
+      const investedPct = equity > 0 ? (invested / equity) * 100 : 0;
+      const dailyPnl = Number(p.daily_pnl || 0);
+      const dailyPnlPct = Number(p.daily_pnl_pct || 0);
+      const totalPnl = Number(p.total_pnl || 0);
+      const totalPnlPct = Number(p.total_pnl_pct || 0);
+
+      document.getElementById('kpi-equity').textContent = fmtUSD(equity);
+      document.getElementById('kpi-initial-equity').textContent = fmtUSD(initialEq);
+
+      const dailyEl = document.getElementById('kpi-daily-pnl');
+      dailyEl.textContent = (dailyPnl >= 0 ? '+' : '') + fmtUSD(dailyPnl);
+      dailyEl.className = `mt-2 text-2xl sm:text-3xl font-bold font-mono ${dailyPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      const dailyBadge = document.getElementById('kpi-daily-badge');
+      dailyBadge.textContent = fmtPct(dailyPnlPct);
+      dailyBadge.className = `px-2 py-0.5 rounded text-[11px] font-mono ${dailyPnl >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`;
+
+      const totEl = document.getElementById('kpi-total-pnl');
+      totEl.textContent = `${totalPnl >= 0 ? '+' : ''}${fmtUSD(totalPnl)} (${fmtPct(totalPnlPct)})`;
+      totEl.className = `font-mono font-semibold ${totalPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      document.getElementById('kpi-cash').textContent = fmtUSD(cash);
+      document.getElementById('kpi-invested').textContent = `${fmtUSD(invested)} (${investedPct.toFixed(1)}%)`;
+
+      // Benchmark SPY
+      const spyData = (d.watchlist && d.watchlist.SPY) || {};
+      const spyPrice = Number(spyData.price || 0);
+      const spyChange = Number(spyData.daily_change_pct || 0);
+      const alphaToday = dailyPnlPct - spyChange;
+
+      document.getElementById('kpi-spy-price').textContent = spyPrice > 0 ? `SPY $${spyPrice.toFixed(2)}` : 'SPY --';
+      const alphaEl = document.getElementById('kpi-alpha');
+      alphaEl.textContent = `${ fmtPct(alphaToday) } vs SPY`;
+      alphaEl.className = `mt-2 text-2xl sm:text-3xl font-bold font-mono ${alphaToday >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      const spyChgEl = document.getElementById('kpi-spy-change');
+      spyChgEl.textContent = fmtPct(spyChange);
+      spyChgEl.className = `font-mono ${spyChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+
+      // Posizioni Aperte + Barre "La Gabbia"
+      const positions = d.positions_list || [];
+      document.getElementById('positions-count').textContent = `${positions.length} Asset in portafoglio`;
+      const posTbody = document.getElementById('positions-tbody');
+      const cageContainer = document.getElementById('cage-bars');
+      posTbody.innerHTML = '';
+      cageContainer.innerHTML = '';
+
+      if (positions.length === 0) {
+        posTbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500">Nessuna posizione aperta al momento (100% Liquidità).</td></tr>`;
+        cageContainer.innerHTML = `<div class="text-xs text-slate-500 py-4 text-center">Nessun asset esposto (0% / 20% limite).</div>`;
+      } else {
+        positions.forEach(pos => {
+          const isPos = pos.unrealized_pl >= 0;
+          const weightPct = Number(pos.weight_pct || 0);
+          const cageRatio = Math.min(100, (weightPct / 20.0) * 100);
+          const barColor = weightPct > 19.0 ? 'bg-amber-400' : 'bg-indigo-500';
+
+          // Barra La Gabbia
+          cageContainer.innerHTML += `
+            <div>
+              <div class="flex justify-between text-xs font-mono mb-1">
+                <span class="font-bold text-white">${pos.symbol} <span class="text-slate-400 font-normal">(${pos.qty} az.)</span></span>
+                <span class="${weightPct > 19 ? 'text-amber-300' : 'text-slate-300'}">${weightPct.toFixed(2)}% / 20.00%</span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full ${barColor} rounded-full transition-all duration-500" style="width: ${cageRatio.toFixed(1)}%"></div>
+              </div>
+            </div>
+          `;
+
+          // Riga Tabella Posizioni
+          posTbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-3.5 px-6 font-bold text-white">
+                <span class="px-2.5 py-1 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">${pos.symbol}</span>
+              </td>
+              <td class="py-3.5 px-4 text-right text-slate-200">${pos.qty}</td>
+              <td class="py-3.5 px-4 text-right text-slate-300">${fmtUSD(pos.avg_entry_price)}</td>
+              <td class="py-3.5 px-4 text-right text-white font-semibold">${fmtUSD(pos.current_price)}</td>
+              <td class="py-3.5 px-4 text-right text-white font-semibold">${fmtUSD(pos.market_value)}</td>
+              <td class="py-3.5 px-4 text-right">
+                <span class="px-2 py-0.5 rounded text-xs ${weightPct > 19 ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-800 text-slate-300'}">
+                  ${weightPct.toFixed(2)}%
+                </span>
+              </td>
+              <td class="py-3.5 px-6 text-right font-semibold ${isPos ? 'text-emerald-400' : 'text-rose-400'}">
+                ${isPos ? '+' : ''}${fmtUSD(pos.unrealized_pl)} (${fmtPct(pos.unrealized_pl_pct)})
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      // Watchlist 8 Ticker
+      const wlTbody = document.getElementById('watchlist-tbody');
+      wlTbody.innerHTML = '';
+      const heldSet = new Set(positions.map(x => x.symbol));
+      const wlEntries = Object.entries(d.watchlist || {});
+      wlEntries.forEach(([sym, info]) => {
+        const chg = Number(info.daily_change_pct || 0);
+        const pb = Number(info.pullback_from_high_pct || 0);
+        const isHeld = heldSet.has(sym);
+        wlTbody.innerHTML += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-4 font-semibold text-white flex items-center gap-2">
+              <span>${sym}</span>
+              ${isHeld ? '<span class="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-300">IN PORTAFOGLIO</span>' : ''}
+            </td>
+            <td class="py-3 px-3 text-right text-slate-200">${fmtUSD(info.price)}</td>
+            <td class="py-3 px-3 text-right ${chg >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${fmtPct(chg)}</td>
+            <td class="py-3 px-4 text-right text-amber-300">${fmtPct(pb, false)}</td>
+          </tr>
+        `;
+      });
+
+      // AI Brain & Piano
+      const mem = d.compact_memory || {};
+      const plan = mem.piano_mattutino_corrente || {};
+      document.getElementById('plan-timestamp').textContent = plan.timestamp ? `Piano: ${plan.timestamp}` : 'Nessun piano recente';
+      document.getElementById('ai-sentiment').textContent = plan.sentiment_mercato || 'In attesa della prossima analisi di mercato.';
+      document.getElementById('ai-note').textContent = mem.nota_giorno_precedente || '--';
+
+      const plannedOrdersEl = document.getElementById('ai-planned-orders');
+      plannedOrdersEl.innerHTML = '';
+      const plannedList = plan.ordini_pianificati || [];
+      if (plannedList.length === 0) {
+        plannedOrdersEl.innerHTML = `<div class="text-xs text-slate-500 p-3 rounded-lg bg-slate-900/50">Nessun ordine attivo nell'ultimo piano (HOLD).</div>`;
+      } else {
+        plannedList.forEach(o => {
+          const isBuy = o.azione === 'BUY';
+          plannedOrdersEl.innerHTML += `
+            <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-xs font-mono font-bold ${isBuy ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+                    ${o.azione} ${o.quantita} ${o.ticker}
+                  </span>
+                </div>
+                <span class="text-[11px] font-mono text-slate-400">Anti-FOMO: ${o.acquisto_sui_massimi_senza_ritracciamento ? '⚠️ Sui Massimi' : '✅ Su Ritracciamento'}</span>
+              </div>
+              <p class="text-xs text-slate-200"><strong class="text-slate-400">Razionale:</strong> ${o.razionale_tecnico || '--'}</p>
+              <div class="p-2.5 rounded-lg bg-rose-950/30 border border-rose-500/20 text-xs text-rose-200/90">
+                <strong class="text-rose-400 font-mono">😈 Perché potrei avere torto:</strong> ${o.perche_potrei_avere_torto || '--'}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      const rulesEl = document.getElementById('ai-rules');
+      rulesEl.innerHTML = '';
+      (mem.regole_apprese || []).forEach(r => {
+        rulesEl.innerHTML += `<li>${r}</li>`;
+      });
+
+      // Storico Ordini Alpaca
+      const orders = d.recent_orders || [];
+      document.getElementById('orders-count').textContent = `${orders.length} Ordini registrati`;
+      const ordersTbody = document.getElementById('orders-tbody');
+      ordersTbody.innerHTML = '';
+      if (orders.length === 0) {
+        ordersTbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-500">Nessun ordine registrato su Alpaca Paper.</td></tr>`;
+      } else {
+        orders.forEach(o => {
+          const isBuy = o.side === 'BUY';
+          const dt = (o.filled_at || o.submitted_at || '').replace('T', ' ').slice(0, 19);
+          const statusColor = o.status === 'FILLED'
+            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+            : 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+
+          ordersTbody.innerHTML += `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-3 px-6 text-slate-400">${dt} UTC</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 rounded font-bold ${isBuy ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">${o.side}</span>
+              </td>
+              <td class="py-3 px-4 font-bold text-white">${o.symbol}</td>
+              <td class="py-3 px-4 text-right text-slate-200">${o.filled_qty || o.qty}</td>
+              <td class="py-3 px-4 text-right text-slate-200">${o.filled_avg_price > 0 ? fmtUSD(o.filled_avg_price) : 'Market'}</td>
+              <td class="py-3 px-4 text-right text-white font-semibold">${o.notional_value > 0 ? fmtUSD(o.notional_value) : '--'}</td>
+              <td class="py-3 px-4 text-center">
+                <span class="px-2 py-0.5 rounded text-[11px] border ${statusColor}">${o.status}</span>
+              </td>
+              <td class="py-3 px-6 text-right text-slate-500">${(o.id || '').slice(0, 8)}...</td>
+            </tr>
+          `;
+        });
+      }
+
+      // Render Charts
+      renderCharts(d, positions, cash);
+    }
+
+    function renderCharts(d, positions, cash) {
+      // 1. Equity Curve
+      const historyPoints = (d.equity_history && d.equity_history.points) || [];
+      const labels = historyPoints.map(pt => pt.date);
+      const values = historyPoints.map(pt => pt.equity);
+
+      const eqCtx = document.getElementById('equityChart').getContext('2d');
+      if (equityChartInstance) equityChartInstance.destroy();
+      equityChartInstance = new Chart(eqCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Equity Portafoglio ($)',
+            data: values,
+            borderColor: '#6366F1',
+            backgroundColor: 'rgba(99, 102, 241, 0.12)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointBackgroundColor: '#818CF8',
+            fill: true,
+            tension: 0.25
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` Equity: ${fmtUSD(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(51, 65, 85, 0.25)' },
+              ticks: { color: '#94A3B8', font: { family: 'JetBrains Mono', size: 11 } }
+            },
+            y: {
+              grid: { color: 'rgba(51, 65, 85, 0.25)' },
+              ticks: {
+                color: '#94A3B8',
+                font: { family: 'JetBrains Mono', size: 11 },
+                callback: v => '$' + Number(v).toLocaleString()
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Allocation Doughnut
+      const allocLabels = [...positions.map(p => p.symbol), 'Liquidità (Cash)'];
+      const allocData = [...positions.map(p => Number(p.market_value || 0)), Number(cash || 0)];
+      const allocColors = ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#06B6D4', '#8B5CF6', '#1E293B'];
+
+      const alCtx = document.getElementById('allocationChart').getContext('2d');
+      if (allocationChartInstance) allocationChartInstance.destroy();
+      allocationChartInstance = new Chart(alCtx, {
+        type: 'doughnut',
+        data: {
+          labels: allocLabels,
+          datasets: [{
+            data: allocData,
+            backgroundColor: allocColors.slice(0, allocData.length - 1).concat(['#334155']),
+            borderColor: '#090D16',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '68%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: '#CBD5E1', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ${ctx.label}: ${fmtUSD(ctx.parsed)}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Avvio automatico e auto-refresh ogni 30 secondi
+    loadDashboard();
+    setInterval(() => loadDashboard(false), 30000);
+  </script>
+</body>
+</html>

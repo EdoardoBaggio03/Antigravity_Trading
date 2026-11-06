@@ -372,8 +372,12 @@
           return await res.json();
         }
       } catch (_) {}
-      const fallback = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
-      return await fallback.json();
+      try {
+        const fallback1 = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
+        if (fallback1.ok) return await fallback1.json();
+      } catch (_) {}
+      const fallback2 = await fetch('./docs/data.json?t=' + Date.now(), { cache: 'no-store' });
+      return await fallback2.json();
     }
 
     async function loadDashboard(isManual = false) {

@@ -1,5 +1,5 @@
 {
-  "generated_at": "06/11/2026 16:10:09",
+  "generated_at": "06/11/2026 16:10:58",
   "timezone": "Europe/Rome",
   "paper_endpoint": "https://paper-api.alpaca.markets",
   "clock": {
@@ -7,83 +7,83 @@
     "is_open": true,
     "next_open": "2026-11-09T09:30:00-05:00",
     "next_close": "2026-11-06T16:00:00-05:00",
-    "timestamp": "2026-11-06T10:10:13.624367557-05:00",
+    "timestamp": "2026-11-06T10:11:02.859781659-05:00",
     "error": null
   },
   "portfolio": {
     "ok": true,
-    "equity": 100001.52,
+    "equity": 99992.36,
     "last_equity": 100000.0,
     "initial_equity": 100000.0,
     "cash": 62299.36,
-    "invested_value": 37710.75,
-    "daily_pnl": 1.52,
-    "daily_pnl_pct": 0.0,
-    "total_pnl": 1.52,
-    "total_pnl_pct": 0.0
+    "invested_value": 37694.0,
+    "daily_pnl": -7.64,
+    "daily_pnl_pct": -0.01,
+    "total_pnl": -7.64,
+    "total_pnl_pct": -0.01
   },
   "positions_list": [
     {
       "symbol": "NVDA",
       "qty": 100.0,
       "avg_entry_price": 192.6653,
-      "current_price": 192.16,
-      "market_value": 19216.0,
-      "weight_pct": 19.22,
-      "unrealized_pl": -50.53,
-      "unrealized_pl_pct": -0.26
+      "current_price": 192.025,
+      "market_value": 19202.5,
+      "weight_pct": 19.2,
+      "unrealized_pl": -64.03,
+      "unrealized_pl_pct": -0.33
     },
     {
       "symbol": "SPY",
       "qty": 25.0,
       "avg_entry_price": 737.3644,
-      "current_price": 739.79,
-      "market_value": 18494.75,
+      "current_price": 739.66,
+      "market_value": 18491.5,
       "weight_pct": 18.49,
-      "unrealized_pl": 60.64,
-      "unrealized_pl_pct": 0.33
+      "unrealized_pl": 57.39,
+      "unrealized_pl_pct": 0.31
     }
   ],
   "watchlist": {
     "AAPL": {
-      "price": 341.48,
-      "daily_change_pct": -0.91,
-      "pullback_from_high_pct": -0.61
+      "price": 341.67,
+      "daily_change_pct": -0.85,
+      "pullback_from_high_pct": -0.56
     },
     "GLD": {
-      "price": 371.07,
-      "daily_change_pct": -1.19,
-      "pullback_from_high_pct": -0.06
+      "price": 371.39,
+      "daily_change_pct": -1.11,
+      "pullback_from_high_pct": 0.0
     },
     "IWM": {
-      "price": 272.34,
-      "daily_change_pct": 0.49,
-      "pullback_from_high_pct": -0.14
+      "price": 272.48,
+      "daily_change_pct": 0.54,
+      "pullback_from_high_pct": -0.08
     },
     "MSFT": {
-      "price": 531.47,
-      "daily_change_pct": -0.9,
-      "pullback_from_high_pct": -0.15
+      "price": 532.18,
+      "daily_change_pct": -0.77,
+      "pullback_from_high_pct": -0.05
     },
     "NVDA": {
-      "price": 192.16,
-      "daily_change_pct": 5.82,
-      "pullback_from_high_pct": -1.4
+      "price": 192.07,
+      "daily_change_pct": 5.77,
+      "pullback_from_high_pct": -1.45
     },
     "QQQ": {
-      "price": 660.47,
-      "daily_change_pct": 1.92,
-      "pullback_from_high_pct": -0.57
+      "price": 660.32,
+      "daily_change_pct": 1.89,
+      "pullback_from_high_pct": -0.6
     },
     "SPY": {
-      "price": 739.73,
-      "daily_change_pct": 0.86,
-      "pullback_from_high_pct": -0.32
+      "price": 739.62,
+      "daily_change_pct": 0.84,
+      "pullback_from_high_pct": -0.34
     },
     "TLT": {
-      "price": 81.89,
-      "daily_change_pct": -0.03,
-      "pullback_from_high_pct": -0.06
+      "price": 81.92,
+      "daily_change_pct": 0.01,
+      "pullback_from_high_pct": -0.02
     }
   },
   "recent_orders": [
@@ -229,8 +229,8 @@
       },
       {
         "date": "06/11 (Live)",
-        "equity": 100001.52,
-        "pnl_pct": 0.002
+        "equity": 99992.36,
+        "pnl_pct": -0.008
       }
     ]
   },
