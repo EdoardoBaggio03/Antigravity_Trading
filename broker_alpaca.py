@@ -222,3 +222,76 @@ class AlpacaPaperBroker:
                 "status": "failed",
                 "error": str(exc),
             }
+
+    def get_recent_orders(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Recupera lo storico ordini (eseguiti, in attesa, cancellati) da Alpaca Paper."""
+        config.verify_paper_endpoint(self.base_url)
+        try:
+            resp = requests.get(
+                f"{self.base_url}/v2/orders",
+                params={"status": "all", "limit": limit, "direction": "desc"},
+                headers=self._headers(),
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            raw_orders = resp.json()
+            orders: list[dict[str, Any]] = []
+            for o in raw_orders:
+                qty_val = float(o.get("filled_qty") or o.get("qty") or 0.0)
+                price_val = float(o.get("filled_avg_price") or 0.0)
+                orders.append(
+                    {
+                        "id": o.get("id"),
+                        "symbol": o.get("symbol"),
+                        "side": str(o.get("side", "")).upper(),
+                        "qty": float(o.get("qty") or 0.0),
+                        "filled_qty": float(o.get("filled_qty") or 0.0),
+                        "filled_avg_price": price_val,
+                        "notional_value": round(qty_val * price_val, 2)
+                        if price_val > 0
+                        else 0.0,
+                        "type": o.get("type"),
+                        "status": str(o.get("status", "")).upper(),
+                        "submitted_at": o.get("submitted_at"),
+                        "filled_at": o.get("filled_at"),
+                    }
+                )
+            return orders
+        except Exception as exc:
+            logger.error("Errore recupero storico ordini Alpaca: %s", exc)
+            return []
+
+    def get_portfolio_history(
+        self, period: str = "1M", timeframe: str = "1D"
+    ) -> dict[str, Any]:
+        """Recupera la curva storica dell'Equity dal conto Alpaca Paper."""
+        config.verify_paper_endpoint(self.base_url)
+        try:
+            resp = requests.get(
+                f"{self.base_url}/v2/account/portfolio/history",
+                params={"period": period, "timeframe": timeframe},
+                headers=self._headers(),
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            timestamps = data.get("timestamp") or []
+            equities = data.get("equity") or []
+            pnl_pcts = data.get("profit_loss_pct") or []
+            base_val = float(data.get("base_value") or 100000.0)
+
+            points: list[dict[str, Any]] = []
+            for ts, eq, pct in zip(timestamps, equities, pnl_pcts):
+                if eq is not None and float(eq) > 0:
+                    points.append(
+                        {
+                            "timestamp": int(ts),
+                            "equity": round(float(eq), 2),
+                            "pnl_pct": round(float(pct or 0.0) * 100.0, 3),
+                        }
+                    )
+            return {"ok": True, "base_value": base_val, "points": points}
+        except Exception as exc:
+            logger.error("Errore recupero portfolio history Alpaca: %s", exc)
+            return {"ok": False, "base_value": 100000.0, "points": []}
+
