@@ -49,6 +49,18 @@
       "quantita": 25.0,
       "prezzo_stimato": 737.04,
       "order_id": "5af077ae-b6f0-4531-81bf-28c1a66df5e9"
+    },
+    {
+      "data": "2026-11-10",
+      "timestamp": "2026-11-10T17:12:47+01:00",
+      "ticker": "NVDA",
+      "azione": "SELL",
+      "quantita": 100.0,
+      "strategia": "STOP_LOSS",
+      "prezzo_stimato": 169.42,
+      "take_profit": null,
+      "stop_loss": null,
+      "order_id": "5e17604e-cabc-4866-8471-7d841ae1e3cf"
     }
   ],
   "storico_bilanci": [

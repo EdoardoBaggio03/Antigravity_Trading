@@ -1,5 +1,5 @@
 {
-  "ultimo_aggiornamento": "2026-11-06T23:56:12+01:00",
+  "ultimo_aggiornamento": "2026-11-10T17:12:47+01:00",
   "spy_prezzo_riferimento_iniziale": 736.07,
   "equity_iniziale": 99528.61,
   "nota_giorno_precedente": "Sessione terminata a -0.47% per ritracciamento finale su NVDA. Posizioni mantenute over-weekend con SPY sostanzialmente piatto e NVDA a supporto. Monitorare lunedì all'open per eventuale gestione del rischio.",
@@ -33,21 +33,21 @@
   "posizioni_attuali": {
     "NVDA": {
       "qty": 100.0,
-      "qty_available": 100.0,
-      "market_value": 18818.0,
+      "qty_available": 0.0,
+      "market_value": 16945.5,
       "avg_entry_price": 192.6653,
-      "current_price": 188.18,
-      "unrealized_pl": -448.53,
-      "unrealized_plpc": -0.02328
+      "current_price": 169.455,
+      "unrealized_pl": -2321.03,
+      "unrealized_plpc": -0.12047
     },
     "SPY": {
       "qty": 25.0,
       "qty_available": 25.0,
-      "market_value": 18411.25,
+      "market_value": 18695.25,
       "avg_entry_price": 737.3644,
-      "current_price": 736.45,
-      "unrealized_pl": -22.86,
-      "unrealized_plpc": -0.00124
+      "current_price": 747.81,
+      "unrealized_pl": 261.14,
+      "unrealized_plpc": 0.01417
     }
   },
   "ultimi_5_giorni_operazioni": [
@@ -67,6 +67,21 @@
           "quantita": 25.0,
           "prezzo_stimato": 737.04,
           "order_id": "5af077ae-b6f0-4531-81bf-28c1a66df5e9"
+        }
+      ]
+    },
+    {
+      "data": "2026-11-10",
+      "operazioni": [
+        {
+          "ticker": "NVDA",
+          "azione": "SELL",
+          "quantita": 100.0,
+          "strategia": "STOP_LOSS",
+          "prezzo_stimato": 169.42,
+          "take_profit": null,
+          "stop_loss": null,
+          "order_id": "5e17604e-cabc-4866-8471-7d841ae1e3cf"
         }
       ]
     }

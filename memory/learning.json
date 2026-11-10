@@ -1,6 +1,15 @@
 {
   "aggiornato_il": "2026-11-06T23:50:14+01:00",
-  "order_meta": {},
+  "order_meta": {
+    "5e17604e-cabc-4866-8471-7d841ae1e3cf": {
+      "ticker": "NVDA",
+      "azione": "SELL",
+      "strategia": "STOP_LOSS",
+      "confidenza": 1.0,
+      "razionale": "Perdita -12.06% oltre lo stop di -1.50%.",
+      "ts": "2026-11-10T17:12:47+01:00"
+    }
+  },
   "closed_trades": [],
   "stats": {
     "totale": {
