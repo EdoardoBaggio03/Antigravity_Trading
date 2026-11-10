@@ -1,5 +1,5 @@
 {
-  "generated_at": "10/11/2026 00:19:04",
+  "generated_at": "10/11/2026 03:36:45",
   "timezone": "Europe/Rome",
   "paper_endpoint": "https://paper-api.alpaca.markets",
   "daily_target_pct": 1.0,
@@ -10,41 +10,41 @@
     "is_open": false,
     "next_open": "2026-11-10T09:30:00-05:00",
     "next_close": "2026-11-10T16:00:00-05:00",
-    "timestamp": "2026-11-09T18:19:04.854999335-05:00",
+    "timestamp": "2026-11-09T21:36:45.393054006-05:00",
     "error": null
   },
   "portfolio": {
     "ok": true,
-    "equity": 99072.35,
+    "equity": 99297.35,
     "last_equity": 99345.6,
     "initial_equity": 99528.61,
     "cash": 62299.35,
-    "invested_value": 36773.0,
-    "daily_pnl": -273.25,
-    "daily_pnl_pct": -0.28,
-    "total_pnl": -456.26,
-    "total_pnl_pct": -0.46
+    "invested_value": 36998.0,
+    "daily_pnl": -48.25,
+    "daily_pnl_pct": -0.05,
+    "total_pnl": -231.26,
+    "total_pnl_pct": -0.23
   },
   "positions_list": [
     {
       "symbol": "NVDA",
       "qty": 100.0,
       "avg_entry_price": 192.6653,
-      "current_price": 179.31,
-      "market_value": 17931.0,
-      "weight_pct": 18.1,
-      "unrealized_pl": -1335.53,
-      "unrealized_pl_pct": -6.93
+      "current_price": 181.48,
+      "market_value": 18148.0,
+      "weight_pct": 18.28,
+      "unrealized_pl": -1118.53,
+      "unrealized_pl_pct": -5.81
     },
     {
       "symbol": "SPY",
       "qty": 25.0,
       "avg_entry_price": 737.3644,
-      "current_price": 753.68,
-      "market_value": 18842.0,
-      "weight_pct": 19.02,
-      "unrealized_pl": 407.89,
-      "unrealized_pl_pct": 2.21
+      "current_price": 754.0,
+      "market_value": 18850.0,
+      "weight_pct": 18.98,
+      "unrealized_pl": 415.89,
+      "unrealized_pl_pct": 2.26
     }
   ],
   "watchlist": {
@@ -399,8 +399,8 @@
       },
       {
         "date": "10/11 (Live)",
-        "equity": 99072.35,
-        "pnl_pct": -0.458
+        "equity": 99297.35,
+        "pnl_pct": -0.232
       }
     ]
   },
