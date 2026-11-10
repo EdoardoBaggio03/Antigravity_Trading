@@ -1,5 +1,5 @@
 {
-  "ultimo_aggiornamento": "2026-11-10T17:12:47+01:00",
+  "ultimo_aggiornamento": "2026-11-10T21:44:21+01:00",
   "spy_prezzo_riferimento_iniziale": 736.07,
   "equity_iniziale": 99528.61,
   "nota_giorno_precedente": "Sessione terminata a -0.47% per ritracciamento finale su NVDA. Posizioni mantenute over-weekend con SPY sostanzialmente piatto e NVDA a supporto. Monitorare lunedì all'open per eventuale gestione del rischio.",
@@ -93,17 +93,14 @@
     "max_posizioni_aperte": 6,
     "cash_minimo_pct": 15.0,
     "modalita_dopo_target": "CONTINUA",
-    "razionale_parametri": "Liquidità mantenuta sopra il 15% per gestire gap all'apertura di lunedì; posizioni aperte ridotte a 6 per focalizzarsi sui setup ad alta convinzione."
+    "razionale_parametri": "Liquidità mantenuta sopra il 15% per prudenza e gestione del rischio di fine sessione. Nessun nuovo ingresso a ridosso della chiusura per evitare gap improvvisi."
   },
   "watchlist_dinamica": [
-    "NVDA",
     "SPY",
     "QQQ",
+    "NVDA",
     "SOXL",
-    "AMD",
-    "GOGO",
-    "FLYT",
-    "STAK"
+    "AMD"
   ],
   "sessioni_eseguite": {
     "data": "2026-11-06",
