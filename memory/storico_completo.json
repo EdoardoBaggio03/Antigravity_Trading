@@ -93,6 +93,24 @@
         "alpha_vs_spy_pct": 0.0
       },
       "nota_giorno_precedente": "Sessione terminata a -0.47% per ritracciamento finale su NVDA. Posizioni mantenute over-weekend con SPY sostanzialmente piatto e NVDA a supporto. Monitorare lunedì all'open per eventuale gestione del rischio."
+    },
+    {
+      "data": "2026-11-11",
+      "timestamp": "2026-11-11T22:07:29+01:00",
+      "pnl_report": {
+        "equity_attuale": 98204.62,
+        "cash_attuale": 98204.62,
+        "daily_pnl_usd": 210.15,
+        "daily_pnl_pct": 0.21,
+        "daily_target_pct": 1.0,
+        "target_1pct_raggiunto": false,
+        "spy_prezzo_attuale": 759.8,
+        "spy_daily_pct": 1.32,
+        "cum_portfolio_pct": -1.33,
+        "cum_spy_pct": 3.22,
+        "alpha_vs_spy_pct": -4.55
+      },
+      "nota_giorno_precedente": "Sessione chiusa in territorio positivo (+0.21% P&L). Nessuna posizione aperta overnight. Forte momentum sui semiconduttori. Domani focus sull'apertura su NVDA e SOXL con strategia GAP_AND_GO o PULLBACK_REVERSAL."
     }
   ]
 }

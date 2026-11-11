@@ -1,5 +1,5 @@
 {
-  "aggiornato_il": "2026-11-06T23:50:14+01:00",
+  "aggiornato_il": "2026-11-11T22:07:19+01:00",
   "order_meta": {
     "5e17604e-cabc-4866-8471-7d841ae1e3cf": {
       "ticker": "NVDA",
@@ -18,13 +18,92 @@
       "ts": "2026-11-11T16:56:10+01:00"
     }
   },
-  "closed_trades": [],
+  "closed_trades": [
+    {
+      "symbol": "NVDA",
+      "qty": 100.0,
+      "entry_price": 192.6653,
+      "exit_price": 169.4748,
+      "pnl_usd": -2319.05,
+      "pnl_pct": -12.04,
+      "holding_min": 5854.3,
+      "entry_time": "2026-11-06T14:38:30.325298Z",
+      "exit_time": "2026-11-10T16:12:49.357009Z",
+      "entry_hour_rome": 15,
+      "strategia": "NON_CLASSIFICATA",
+      "confidenza": null
+    },
+    {
+      "symbol": "SPY",
+      "qty": 25.0,
+      "entry_price": 737.3644,
+      "exit_price": 758.326,
+      "pnl_usd": 524.04,
+      "pnl_pct": 2.84,
+      "holding_min": 7277.7,
+      "entry_time": "2026-11-06T14:38:32.25496Z",
+      "exit_time": "2026-11-11T15:56:16.458833Z",
+      "entry_hour_rome": 15,
+      "strategia": "NON_CLASSIFICATA",
+      "confidenza": null
+    }
+  ],
   "stats": {
     "totale": {
-      "n": 0
+      "n": 2,
+      "win_rate": 50.0,
+      "pnl_usd": -1795.01,
+      "avg_pct": -4.6,
+      "avg_win_pct": 2.84,
+      "avg_loss_pct": -12.04,
+      "profit_factor": 0.23,
+      "avg_holding_min": 6566.0
     },
-    "per_strategia": {},
-    "per_ticker": {},
-    "per_ora_ingresso": {}
+    "per_strategia": {
+      "NON_CLASSIFICATA": {
+        "n": 2,
+        "win_rate": 50.0,
+        "pnl_usd": -1795.01,
+        "avg_pct": -4.6,
+        "avg_win_pct": 2.84,
+        "avg_loss_pct": -12.04,
+        "profit_factor": 0.23,
+        "avg_holding_min": 6566.0
+      }
+    },
+    "per_ticker": {
+      "NVDA": {
+        "n": 1,
+        "win_rate": 0.0,
+        "pnl_usd": -2319.05,
+        "avg_pct": -12.04,
+        "avg_win_pct": 0.0,
+        "avg_loss_pct": -12.04,
+        "profit_factor": 0.0,
+        "avg_holding_min": 5854.3
+      },
+      "SPY": {
+        "n": 1,
+        "win_rate": 100.0,
+        "pnl_usd": 524.04,
+        "avg_pct": 2.84,
+        "avg_win_pct": 2.84,
+        "avg_loss_pct": 0.0,
+        "profit_factor": 99.0,
+        "avg_holding_min": 7277.7
+      }
+    },
+    "per_ora_ingresso": {
+      "15": {
+        "n": 2,
+        "win_rate": 50.0,
+        "pnl_usd": -1795.01,
+        "avg_pct": -4.6,
+        "avg_win_pct": 2.84,
+        "avg_loss_pct": -12.04,
+        "profit_factor": 0.23,
+        "avg_holding_min": 6566.0
+      }
+    }
   }
 }
