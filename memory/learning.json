@@ -8,6 +8,14 @@
       "confidenza": 1.0,
       "razionale": "Perdita -12.06% oltre lo stop di -1.50%.",
       "ts": "2026-11-10T17:12:47+01:00"
+    },
+    "3459a951-f19d-4a2d-ad71-fc557463d796": {
+      "ticker": "SPY",
+      "azione": "SELL",
+      "strategia": "TAKE_PROFIT",
+      "confidenza": 1.0,
+      "razionale": "Profitto +2.85% (TP 2.20%).",
+      "ts": "2026-11-11T16:56:10+01:00"
     }
   },
   "closed_trades": [],

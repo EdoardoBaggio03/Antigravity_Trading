@@ -61,6 +61,18 @@
       "take_profit": null,
       "stop_loss": null,
       "order_id": "5e17604e-cabc-4866-8471-7d841ae1e3cf"
+    },
+    {
+      "data": "2026-11-11",
+      "timestamp": "2026-11-11T16:56:10+01:00",
+      "ticker": "SPY",
+      "azione": "SELL",
+      "quantita": 25.0,
+      "strategia": "TAKE_PROFIT",
+      "prezzo_stimato": 758.3,
+      "take_profit": null,
+      "stop_loss": null,
+      "order_id": "3459a951-f19d-4a2d-ad71-fc557463d796"
     }
   ],
   "storico_bilanci": [
