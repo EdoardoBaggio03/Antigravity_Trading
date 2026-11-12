@@ -16,6 +16,14 @@
       "confidenza": 1.0,
       "razionale": "Profitto +2.85% (TP 2.20%).",
       "ts": "2026-11-11T16:56:10+01:00"
+    },
+    "a1195926-9593-41b4-af3e-055640f6a115": {
+      "ticker": "AMD",
+      "azione": "BUY",
+      "strategia": "MOMENTUM_BREAKOUT",
+      "confidenza": 0.72,
+      "razionale": "Forte momentum rialzista (+6.58%), a ridosso dei massimi intraday con volumi sostenuti e forza relativa rispetto a NVDA.",
+      "ts": "2026-11-12T17:40:18+01:00"
     }
   },
   "closed_trades": [

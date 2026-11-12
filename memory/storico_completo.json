@@ -73,6 +73,18 @@
       "take_profit": null,
       "stop_loss": null,
       "order_id": "3459a951-f19d-4a2d-ad71-fc557463d796"
+    },
+    {
+      "data": "2026-11-12",
+      "timestamp": "2026-11-12T17:40:18+01:00",
+      "ticker": "AMD",
+      "azione": "BUY",
+      "quantita": 33.0,
+      "strategia": "MOMENTUM_BREAKOUT",
+      "prezzo_stimato": 589.22,
+      "take_profit": 603.95,
+      "stop_loss": 580.38,
+      "order_id": "a1195926-9593-41b4-af3e-055640f6a115"
     }
   ],
   "storico_bilanci": [
