@@ -1,5 +1,5 @@
 {
-  "aggiornato_il": "2026-11-11T22:07:19+01:00",
+  "aggiornato_il": "2026-11-12T22:21:41+01:00",
   "order_meta": {
     "5e17604e-cabc-4866-8471-7d841ae1e3cf": {
       "ticker": "NVDA",
@@ -54,18 +54,32 @@
       "entry_hour_rome": 15,
       "strategia": "NON_CLASSIFICATA",
       "confidenza": null
+    },
+    {
+      "symbol": "AMD",
+      "qty": 33.0,
+      "entry_price": 587.17,
+      "exit_price": 580.4327,
+      "pnl_usd": -222.33,
+      "pnl_pct": -1.15,
+      "holding_min": 35.1,
+      "entry_time": "2026-11-12T16:40:19.703042Z",
+      "exit_time": "2026-11-12T17:15:26.14236Z",
+      "entry_hour_rome": 17,
+      "strategia": "MOMENTUM_BREAKOUT",
+      "confidenza": 0.72
     }
   ],
   "stats": {
     "totale": {
-      "n": 2,
-      "win_rate": 50.0,
-      "pnl_usd": -1795.01,
-      "avg_pct": -4.6,
+      "n": 3,
+      "win_rate": 33.3,
+      "pnl_usd": -2017.34,
+      "avg_pct": -3.45,
       "avg_win_pct": 2.84,
-      "avg_loss_pct": -12.04,
-      "profit_factor": 0.23,
-      "avg_holding_min": 6566.0
+      "avg_loss_pct": -6.59,
+      "profit_factor": 0.21,
+      "avg_holding_min": 4389.0
     },
     "per_strategia": {
       "NON_CLASSIFICATA": {
@@ -77,6 +91,16 @@
         "avg_loss_pct": -12.04,
         "profit_factor": 0.23,
         "avg_holding_min": 6566.0
+      },
+      "MOMENTUM_BREAKOUT": {
+        "n": 1,
+        "win_rate": 0.0,
+        "pnl_usd": -222.33,
+        "avg_pct": -1.15,
+        "avg_win_pct": 0.0,
+        "avg_loss_pct": -1.15,
+        "profit_factor": 0.0,
+        "avg_holding_min": 35.1
       }
     },
     "per_ticker": {
@@ -99,6 +123,16 @@
         "avg_loss_pct": 0.0,
         "profit_factor": 99.0,
         "avg_holding_min": 7277.7
+      },
+      "AMD": {
+        "n": 1,
+        "win_rate": 0.0,
+        "pnl_usd": -222.33,
+        "avg_pct": -1.15,
+        "avg_win_pct": 0.0,
+        "avg_loss_pct": -1.15,
+        "profit_factor": 0.0,
+        "avg_holding_min": 35.1
       }
     },
     "per_ora_ingresso": {
@@ -111,6 +145,16 @@
         "avg_loss_pct": -12.04,
         "profit_factor": 0.23,
         "avg_holding_min": 6566.0
+      },
+      "17": {
+        "n": 1,
+        "win_rate": 0.0,
+        "pnl_usd": -222.33,
+        "avg_pct": -1.15,
+        "avg_win_pct": 0.0,
+        "avg_loss_pct": -1.15,
+        "profit_factor": 0.0,
+        "avg_holding_min": 35.1
       }
     }
   }

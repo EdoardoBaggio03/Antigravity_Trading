@@ -123,6 +123,24 @@
         "alpha_vs_spy_pct": -4.55
       },
       "nota_giorno_precedente": "Sessione chiusa in territorio positivo (+0.21% P&L). Nessuna posizione aperta overnight. Forte momentum sui semiconduttori. Domani focus sull'apertura su NVDA e SOXL con strategia GAP_AND_GO o PULLBACK_REVERSAL."
+    },
+    {
+      "data": "2026-11-12",
+      "timestamp": "2026-11-12T22:21:46+01:00",
+      "pnl_report": {
+        "equity_attuale": 97981.88,
+        "cash_attuale": 97981.88,
+        "daily_pnl_usd": -222.33,
+        "daily_pnl_pct": -0.23,
+        "daily_target_pct": 1.0,
+        "target_1pct_raggiunto": false,
+        "spy_prezzo_attuale": 757.37,
+        "spy_daily_pct": -0.32,
+        "cum_portfolio_pct": -1.55,
+        "cum_spy_pct": 2.89,
+        "alpha_vs_spy_pct": -4.45
+      },
+      "nota_giorno_precedente": "Sessione conclusa interamente in cash. Nessuna posizione aperta per evitare gap overnight rischiosi. Domani valuteremo opportunità di pullback sui semiconduttori."
     }
   ]
 }
