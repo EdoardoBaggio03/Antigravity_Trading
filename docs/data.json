@@ -1,5 +1,5 @@
 {
-  "generated_at": "13/11/2026 16:59:28",
+  "generated_at": "13/11/2026 21:47:50",
   "timezone": "Europe/Rome",
   "paper_endpoint": "https://paper-api.alpaca.markets",
   "daily_target_pct": 1.0,
@@ -10,246 +10,249 @@
     "is_open": true,
     "next_open": "2026-11-16T09:30:00-05:00",
     "next_close": "2026-11-13T16:00:00-05:00",
-    "timestamp": "2026-11-13T10:59:28.646199597-05:00",
+    "timestamp": "2026-11-13T15:47:50.303082062-05:00",
     "error": null
   },
   "portfolio": {
     "ok": true,
-    "equity": 97976.85,
+    "equity": 97600.46,
     "last_equity": 97981.47,
     "initial_equity": 99528.61,
-    "cash": 73509.12,
-    "invested_value": 24467.73,
-    "daily_pnl": -4.62,
-    "daily_pnl_pct": -0.0,
-    "total_pnl": -1551.76,
-    "total_pnl_pct": -1.56
+    "cash": 97600.46,
+    "invested_value": 0.0,
+    "daily_pnl": -381.01,
+    "daily_pnl_pct": -0.39,
+    "total_pnl": -1928.15,
+    "total_pnl_pct": -1.94
   },
-  "positions_list": [
-    {
-      "symbol": "SOXS",
-      "qty": 457.0,
-      "avg_entry_price": 53.55,
-      "current_price": 53.5399,
-      "market_value": 24467.73,
-      "weight_pct": 24.97,
-      "unrealized_pl": -4.62,
-      "unrealized_pl_pct": -0.02
-    }
-  ],
+  "positions_list": [],
   "watchlist": {
     "AAPL": {
-      "price": 358.87,
-      "daily_change_pct": 1.13,
-      "pullback_from_high_pct": -0.54,
-      "volume": 398704,
+      "price": 355.91,
+      "daily_change_pct": 0.3,
+      "pullback_from_high_pct": -1.36,
+      "volume": 1062478,
       "category": "MEGA TECH"
     },
     "AMD": {
-      "price": 531.05,
-      "daily_change_pct": -9.33,
-      "pullback_from_high_pct": -7.0,
-      "volume": 484483,
+      "price": 532.53,
+      "daily_change_pct": -9.08,
+      "pullback_from_high_pct": -6.74,
+      "volume": 1018301,
       "category": "AI & SEMI"
     },
     "AMZN": {
-      "price": 265.57,
-      "daily_change_pct": -0.7,
-      "pullback_from_high_pct": -1.58,
-      "volume": 394280,
+      "price": 266.37,
+      "daily_change_pct": -0.4,
+      "pullback_from_high_pct": -1.28,
+      "volume": 942656,
       "category": "MEGA TECH"
     },
     "AVGO": {
-      "price": 340.95,
-      "daily_change_pct": -6.39,
-      "pullback_from_high_pct": -4.86,
-      "volume": 384578,
+      "price": 345.88,
+      "daily_change_pct": -5.04,
+      "pullback_from_high_pct": -3.48,
+      "volume": 773965,
       "category": "AI & SEMI"
     },
     "COIN": {
-      "price": 127.92,
-      "daily_change_pct": -2.08,
-      "pullback_from_high_pct": -1.95,
-      "volume": 88919,
+      "price": 128.28,
+      "daily_change_pct": -1.81,
+      "pullback_from_high_pct": -1.68,
+      "volume": 182367,
       "category": "CRYPTO PROXY"
     },
     "CRM": {
-      "price": 216.31,
-      "daily_change_pct": -0.58,
-      "pullback_from_high_pct": -1.64,
-      "volume": 72241,
+      "price": 217.97,
+      "daily_change_pct": 0.18,
+      "pullback_from_high_pct": -0.88,
+      "volume": 231066,
       "category": "CLOUD TECH"
     },
     "GLD": {
-      "price": 354.94,
-      "daily_change_pct": 0.02,
-      "pullback_from_high_pct": -0.65,
-      "volume": 45207,
+      "price": 355.0,
+      "daily_change_pct": 0.04,
+      "pullback_from_high_pct": -0.64,
+      "volume": 373505,
       "category": "ORO / DIFESA"
     },
     "GOOGL": {
-      "price": 295.08,
-      "daily_change_pct": -1.21,
-      "pullback_from_high_pct": -3.23,
-      "volume": 686983,
+      "price": 295.71,
+      "daily_change_pct": -1.0,
+      "pullback_from_high_pct": -3.03,
+      "volume": 1383693,
       "category": "MEGA TECH"
     },
     "HOOD": {
-      "price": 77.7,
-      "daily_change_pct": -4.5,
-      "pullback_from_high_pct": -2.73,
-      "volume": 250476,
+      "price": 77.99,
+      "daily_change_pct": -4.14,
+      "pullback_from_high_pct": -2.37,
+      "volume": 633696,
       "category": "FINTECH BETA"
     },
     "IWM": {
-      "price": 275.78,
-      "daily_change_pct": -0.95,
-      "pullback_from_high_pct": -1.21,
-      "volume": 287868,
+      "price": 277.35,
+      "daily_change_pct": -0.39,
+      "pullback_from_high_pct": -0.65,
+      "volume": 627353,
       "category": "INDICE"
     },
     "META": {
-      "price": 629.95,
-      "daily_change_pct": 1.03,
-      "pullback_from_high_pct": -1.13,
-      "volume": 272343,
+      "price": 641.8,
+      "daily_change_pct": 2.93,
+      "pullback_from_high_pct": -0.12,
+      "volume": 584697,
       "category": "AI & TECH"
     },
     "MSFT": {
-      "price": 525.32,
-      "daily_change_pct": 0.44,
-      "pullback_from_high_pct": -0.11,
-      "volume": 312506,
+      "price": 524.0,
+      "daily_change_pct": 0.19,
+      "pullback_from_high_pct": -0.37,
+      "volume": 614138,
       "category": "MEGA TECH"
     },
     "MSTR": {
-      "price": 110.19,
-      "daily_change_pct": -3.67,
-      "pullback_from_high_pct": -2.14,
-      "volume": 168770,
+      "price": 112.19,
+      "daily_change_pct": -1.92,
+      "pullback_from_high_pct": -0.72,
+      "volume": 362621,
       "category": "CRYPTO HIGH BETA"
     },
     "NFLX": {
-      "price": 62.87,
-      "daily_change_pct": 0.3,
-      "pullback_from_high_pct": -1.67,
-      "volume": 934707,
+      "price": 62.3,
+      "daily_change_pct": -0.61,
+      "pullback_from_high_pct": -2.56,
+      "volume": 1981267,
       "category": "MOMENTUM"
     },
     "NVDA": {
-      "price": 159.96,
-      "daily_change_pct": -3.68,
-      "pullback_from_high_pct": -5.89,
-      "volume": 4567925,
+      "price": 162.25,
+      "daily_change_pct": -2.3,
+      "pullback_from_high_pct": -4.55,
+      "volume": 10096798,
       "category": "AI & TECH"
     },
     "PLTR": {
-      "price": 167.81,
-      "daily_change_pct": -2.16,
-      "pullback_from_high_pct": -2.42,
-      "volume": 225379,
+      "price": 168.37,
+      "daily_change_pct": -1.83,
+      "pullback_from_high_pct": -2.1,
+      "volume": 408451,
       "category": "AI MOMENTUM"
     },
     "QQQ": {
-      "price": 675.01,
-      "daily_change_pct": -1.92,
-      "pullback_from_high_pct": -1.98,
-      "volume": 182266,
+      "price": 679.26,
+      "daily_change_pct": -1.3,
+      "pullback_from_high_pct": -1.36,
+      "volume": 410914,
       "category": "INDICE"
     },
     "SHOP": {
-      "price": 147.04,
-      "daily_change_pct": 0.18,
-      "pullback_from_high_pct": -2.33,
-      "volume": 74632,
+      "price": 147.41,
+      "daily_change_pct": 0.43,
+      "pullback_from_high_pct": -2.08,
+      "volume": 186121,
       "category": "E-COMMERCE"
     },
     "SLV": {
-      "price": 44.3,
-      "daily_change_pct": -1.78,
-      "pullback_from_high_pct": -1.89,
-      "volume": 260078,
+      "price": 44.06,
+      "daily_change_pct": -2.33,
+      "pullback_from_high_pct": -2.44,
+      "volume": 518033,
       "category": "ARGENTO"
     },
     "SOFI": {
-      "price": 15.26,
-      "daily_change_pct": -2.3,
-      "pullback_from_high_pct": -3.08,
-      "volume": 593193,
+      "price": 15.44,
+      "daily_change_pct": -1.18,
+      "pullback_from_high_pct": -1.97,
+      "volume": 1453894,
       "category": "FINTECH BETA"
     },
     "SOXL": {
-      "price": 54.38,
-      "daily_change_pct": -16.96,
-      "pullback_from_high_pct": -15.89,
-      "volume": 1076272,
+      "price": 58.03,
+      "daily_change_pct": -11.39,
+      "pullback_from_high_pct": -10.24,
+      "volume": 2026513,
       "category": "LEVA 3X SEMI"
     },
     "SPXL": {
-      "price": 260.95,
-      "daily_change_pct": -2.74,
-      "pullback_from_high_pct": -3.78,
-      "volume": 41391,
+      "price": 263.14,
+      "daily_change_pct": -1.93,
+      "pullback_from_high_pct": -2.97,
+      "volume": 67114,
       "category": "LEVA 3X S&P"
     },
     "SPY": {
-      "price": 750.86,
-      "daily_change_pct": -0.83,
-      "pullback_from_high_pct": -1.21,
-      "volume": 331381,
+      "price": 753.03,
+      "daily_change_pct": -0.55,
+      "pullback_from_high_pct": -0.93,
+      "volume": 786302,
       "category": "INDICE"
     },
     "SQQQ": {
-      "price": 43.32,
-      "daily_change_pct": 5.81,
-      "pullback_from_high_pct": -1.14,
-      "volume": 671908,
+      "price": 42.58,
+      "daily_change_pct": 4.01,
+      "pullback_from_high_pct": -3.01,
+      "volume": 1384968,
       "category": "HEDGE 3X SHORT"
     },
     "TLT": {
-      "price": 79.5,
-      "daily_change_pct": -0.29,
-      "pullback_from_high_pct": -0.12,
-      "volume": 822876,
+      "price": 79.33,
+      "daily_change_pct": -0.5,
+      "pullback_from_high_pct": -0.36,
+      "volume": 1372229,
       "category": "TREASURY 20Y"
     },
     "TQQQ": {
-      "price": 56.41,
-      "daily_change_pct": -5.79,
-      "pullback_from_high_pct": -5.89,
-      "volume": 689560,
+      "price": 57.49,
+      "daily_change_pct": -3.99,
+      "pullback_from_high_pct": -4.09,
+      "volume": 1187529,
       "category": "LEVA 3X LONG"
     },
     "TSLA": {
-      "price": 390.01,
-      "daily_change_pct": -1.87,
-      "pullback_from_high_pct": -3.54,
-      "volume": 522549,
+      "price": 390.69,
+      "daily_change_pct": -1.69,
+      "pullback_from_high_pct": -3.37,
+      "volume": 862801,
       "category": "HIGH BETA"
     },
     "USO": {
-      "price": 145.72,
-      "daily_change_pct": -0.27,
-      "pullback_from_high_pct": -0.87,
-      "volume": 20228,
+      "price": 145.46,
+      "daily_change_pct": -0.44,
+      "pullback_from_high_pct": -1.04,
+      "volume": 48266,
       "category": "PETROLIO"
     },
     "XLE": {
-      "price": 64.62,
-      "daily_change_pct": 0.48,
-      "pullback_from_high_pct": -0.52,
-      "volume": 692884,
+      "price": 64.8,
+      "daily_change_pct": 0.76,
+      "pullback_from_high_pct": -0.25,
+      "volume": 1491663,
       "category": "ENERGIA"
     },
     "XLF": {
-      "price": 58.56,
-      "daily_change_pct": 0.64,
-      "pullback_from_high_pct": -0.23,
-      "volume": 635333,
+      "price": 58.49,
+      "daily_change_pct": 0.52,
+      "pullback_from_high_pct": -0.35,
+      "volume": 1640145,
       "category": "FINANZA"
     }
   },
   "recent_orders": [
+    {
+      "id": "3bd9530a-67b6-465e-ac52-eeedda03439f",
+      "symbol": "SOXS",
+      "side": "SELL",
+      "qty": 457.0,
+      "filled_qty": 457.0,
+      "filled_avg_price": 52.71628,
+      "notional_value": 24091.34,
+      "type": "stop",
+      "order_class": "bracket",
+      "status": "FILLED",
+      "submitted_at": "2026-11-13T16:28:44.781489Z",
+      "filled_at": "2026-11-13T16:28:46.33293Z"
+    },
     {
       "id": "97dbd029-e65c-47b7-895c-cb2bfd07b677",
       "symbol": "SOXS",
@@ -260,8 +263,8 @@
       "notional_value": 0.0,
       "type": "limit",
       "order_class": "bracket",
-      "status": "NEW",
-      "submitted_at": "2026-11-13T15:59:27.81563178Z",
+      "status": "CANCELED",
+      "submitted_at": "2026-11-13T15:59:27.815632Z",
       "filled_at": null
     },
     {
@@ -275,22 +278,8 @@
       "type": "market",
       "order_class": "bracket",
       "status": "FILLED",
-      "submitted_at": "2026-11-13T15:59:27.213435565Z",
-      "filled_at": "2026-11-13T15:59:27.806828231Z"
-    },
-    {
-      "id": "3bd9530a-67b6-465e-ac52-eeedda03439f",
-      "symbol": "SOXS",
-      "side": "SELL",
-      "qty": 457.0,
-      "filled_qty": 0.0,
-      "filled_avg_price": 0.0,
-      "notional_value": 0.0,
-      "type": "stop",
-      "order_class": "bracket",
-      "status": "HELD",
-      "submitted_at": "2026-11-13T15:59:27.205760592Z",
-      "filled_at": null
+      "submitted_at": "2026-11-13T15:59:27.213436Z",
+      "filled_at": "2026-11-13T15:59:27.806828Z"
     },
     {
       "id": "345b060d-5c9b-477a-94e5-0f2ce31a6035",
@@ -506,13 +495,13 @@
       },
       {
         "date": "13/11 (Live)",
-        "equity": 97976.85,
-        "pnl_pct": -1.559
+        "equity": 97600.46,
+        "pnl_pct": -1.937
       }
     ]
   },
   "compact_memory": {
-    "ultimo_aggiornamento": "2026-11-13T16:59:27+01:00",
+    "ultimo_aggiornamento": "2026-11-13T21:47:49+01:00",
     "spy_prezzo_riferimento_iniziale": 736.07,
     "equity_iniziale": 99528.61,
     "nota_giorno_precedente": "Sessione conclusa interamente in cash. Nessuna posizione aperta per evitare gap overnight rischiosi. Domani valuteremo opportunità di pullback sui semiconduttori.",
@@ -633,13 +622,13 @@
       "stop_loss_default_pct": 1.5,
       "max_posizioni_aperte": 4,
       "cash_minimo_pct": 20.0,
-      "modalita_dopo_target": "CONTINUA",
-      "razionale_parametri": "Stop loss contenuto al 1.5% per proteggere il capitale contro brusche inversioni intra-day su prodotti a leva 3x."
+      "modalita_dopo_target": "PROTEGGI_PROFITTI",
+      "razionale_parametri": "Gestione della liquidità rigida al 100% prima del weekend in linea con il principio di prevenzione del rischio gap overnight."
     },
     "watchlist_dinamica": [
       "SOXS",
-      "NVDA",
       "SOXL",
+      "NVDA",
       "AMD",
       "QQQ"
     ],
@@ -655,8 +644,8 @@
     "stop_loss_default_pct": 1.5,
     "max_posizioni_aperte": 4,
     "cash_minimo_pct": 20.0,
-    "modalita_dopo_target": "CONTINUA",
-    "razionale_parametri": "Stop loss contenuto al 1.5% per proteggere il capitale contro brusche inversioni intra-day su prodotti a leva 3x."
+    "modalita_dopo_target": "PROTEGGI_PROFITTI",
+    "razionale_parametri": "Gestione della liquidità rigida al 100% prima del weekend in linea con il principio di prevenzione del rischio gap overnight."
   },
   "learning": {
     "aggiornato_il": "2026-11-12T22:21:41+01:00",

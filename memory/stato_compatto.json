@@ -1,5 +1,5 @@
 {
-  "ultimo_aggiornamento": "2026-11-13T16:59:27+01:00",
+  "ultimo_aggiornamento": "2026-11-13T21:47:49+01:00",
   "spy_prezzo_riferimento_iniziale": 736.07,
   "equity_iniziale": 99528.61,
   "nota_giorno_precedente": "Sessione conclusa interamente in cash. Nessuna posizione aperta per evitare gap overnight rischiosi. Domani valuteremo opportunità di pullback sui semiconduttori.",
@@ -120,13 +120,13 @@
     "stop_loss_default_pct": 1.5,
     "max_posizioni_aperte": 4,
     "cash_minimo_pct": 20.0,
-    "modalita_dopo_target": "CONTINUA",
-    "razionale_parametri": "Stop loss contenuto al 1.5% per proteggere il capitale contro brusche inversioni intra-day su prodotti a leva 3x."
+    "modalita_dopo_target": "PROTEGGI_PROFITTI",
+    "razionale_parametri": "Gestione della liquidità rigida al 100% prima del weekend in linea con il principio di prevenzione del rischio gap overnight."
   },
   "watchlist_dinamica": [
     "SOXS",
-    "NVDA",
     "SOXL",
+    "NVDA",
     "AMD",
     "QQQ"
   ],
