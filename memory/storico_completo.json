@@ -85,6 +85,18 @@
       "take_profit": 603.95,
       "stop_loss": 580.38,
       "order_id": "a1195926-9593-41b4-af3e-055640f6a115"
+    },
+    {
+      "data": "2026-11-13",
+      "timestamp": "2026-11-13T16:59:27+01:00",
+      "ticker": "SOXS",
+      "azione": "BUY",
+      "quantita": 457.0,
+      "strategia": "INVERSE_HEDGE",
+      "prezzo_stimato": 53.54,
+      "take_profit": 55.15,
+      "stop_loss": 52.74,
+      "order_id": "e3660ad9-db15-4cbb-8f0d-bcb69d291135"
     }
   ],
   "storico_bilanci": [

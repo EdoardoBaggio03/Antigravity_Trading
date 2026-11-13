@@ -24,6 +24,14 @@
       "confidenza": 0.72,
       "razionale": "Forte momentum rialzista (+6.58%), a ridosso dei massimi intraday con volumi sostenuti e forza relativa rispetto a NVDA.",
       "ts": "2026-11-12T17:40:18+01:00"
+    },
+    "e3660ad9-db15-4cbb-8f0d-bcb69d291135": {
+      "ticker": "SOXS",
+      "azione": "BUY",
+      "strategia": "INVERSE_HEDGE",
+      "confidenza": 0.68,
+      "razionale": "Forte capitolazione del settore semiconduttori. SOXS mostra ottima forza relativa con prezzi vicini ai massimi di giorna",
+      "ts": "2026-11-13T16:59:27+01:00"
     }
   },
   "closed_trades": [

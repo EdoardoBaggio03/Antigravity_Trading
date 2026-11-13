@@ -1,5 +1,5 @@
 {
-  "ultimo_aggiornamento": "2026-11-12T22:21:46+01:00",
+  "ultimo_aggiornamento": "2026-11-13T16:59:27+01:00",
   "spy_prezzo_riferimento_iniziale": 736.07,
   "equity_iniziale": 99528.61,
   "nota_giorno_precedente": "Sessione conclusa interamente in cash. Nessuna posizione aperta per evitare gap overnight rischiosi. Domani valuteremo opportunità di pullback sui semiconduttori.",
@@ -97,22 +97,37 @@
           "order_id": "a1195926-9593-41b4-af3e-055640f6a115"
         }
       ]
+    },
+    {
+      "data": "2026-11-13",
+      "operazioni": [
+        {
+          "ticker": "SOXS",
+          "azione": "BUY",
+          "quantita": 457.0,
+          "strategia": "INVERSE_HEDGE",
+          "prezzo_stimato": 53.54,
+          "take_profit": 55.15,
+          "stop_loss": 52.74,
+          "order_id": "e3660ad9-db15-4cbb-8f0d-bcb69d291135"
+        }
+      ]
     }
   ],
   "parametri_strategia": {
     "max_peso_singolo_asset_pct": 25.0,
-    "take_profit_default_pct": 2.5,
+    "take_profit_default_pct": 3.0,
     "stop_loss_default_pct": 1.5,
-    "max_posizioni_aperte": 5,
+    "max_posizioni_aperte": 4,
     "cash_minimo_pct": 20.0,
     "modalita_dopo_target": "CONTINUA",
-    "razionale_parametri": "Mantenimento dello stop loss al 1.5% basato sui risultati passati per limitare le perdite sui titoli ad alta volatilità come NVDA e AMD."
+    "razionale_parametri": "Stop loss contenuto al 1.5% per proteggere il capitale contro brusche inversioni intra-day su prodotti a leva 3x."
   },
   "watchlist_dinamica": [
+    "SOXS",
     "NVDA",
     "SOXL",
     "AMD",
-    "SPY",
     "QQQ"
   ],
   "sessioni_eseguite": {
